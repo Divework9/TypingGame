@@ -17,6 +17,7 @@ class LayoutBoundsTestCase(TypingGameBaseTestCase):
             os.environ["TYPING_GAME_SCALE_RATIO"] = str(scale_ratio)
 
             import conf.game_constants as gc_mod
+            import conf.combo_feedback as cf_mod
             import typing_game as tg_mod
 
             gc_mod = importlib.reload(gc_mod)
@@ -27,18 +28,64 @@ class LayoutBoundsTestCase(TypingGameBaseTestCase):
             # 左侧信息：分数 / 等级 / 连击 应按 x 轴顺序留有间隔
             score_text = tg_mod.font_small.render("分数: 9999", True, tg_mod.TEXT_WHITE)
             level_text = tg_mod.font_small.render("Lv.99", True, tg_mod.TEXT_WHITE)
-            combo_text = tg_mod.font_small.render("Combo x99!", True, tg_mod.TEXT_WHITE)
+            combo_text = tg_mod.font_combo.render("Combo x99!", True, tg_mod.TEXT_WHITE)
+            max_feedback_width = max(
+                tg_mod.font_small.render(word, True, tg_mod.TEXT_WHITE).get_width()
+                for tier in cf_mod.COMBO_FEEDBACK_TIERS
+                for word in tier
+            )
 
             score_left = gc_mod.SCORE_TEXT_X
             score_right = score_left + score_text.get_width()
             level_left = gc_mod.LEVEL_TEXT_X
             level_right = level_left + level_text.get_width()
-            combo_left = gc_mod.COMBO_TEXT_X
+            combo_left = max(
+                gc_mod.COMBO_TEXT_X,
+                level_right + gc_mod.COMBO_FEEDBACK_GAP + max_feedback_width + gc_mod.COMBO_FEEDBACK_GAP,
+            )
+            feedback_left = combo_left - gc_mod.COMBO_FEEDBACK_GAP - max_feedback_width
             combo_right = combo_left + combo_text.get_width()
+            anchor_bottom = info_y + level_text.get_height()
+
+            score_rect = tg_mod.pygame.Rect(
+                score_left,
+                info_y,
+                score_text.get_width(),
+                score_text.get_height(),
+            )
+            level_rect = tg_mod.pygame.Rect(
+                level_left,
+                info_y,
+                level_text.get_width(),
+                level_text.get_height(),
+            )
+            combo_rect = tg_mod.pygame.Rect(
+                combo_left,
+                anchor_bottom - combo_text.get_height(),
+                combo_text.get_width(),
+                combo_text.get_height(),
+            )
+            feedback_rect = tg_mod.pygame.Rect(
+                feedback_left,
+                anchor_bottom - tg_mod.font_small.get_height(),
+                max_feedback_width,
+                tg_mod.font_small.get_height(),
+            )
 
             self.assertLessEqual(score_right, level_left)
-            self.assertLessEqual(level_right, combo_left)
+            self.assertLessEqual(level_right, feedback_left)
             self.assertLessEqual(combo_right, gc_mod.SCREEN_WIDTH)
+
+            # 明确校验：得分/等级 与 Combo 不重叠
+            self.assertFalse(score_rect.colliderect(combo_rect))
+            self.assertFalse(level_rect.colliderect(combo_rect))
+
+            # 明确校验：Combo 与 中文评价不重叠
+            self.assertFalse(feedback_rect.colliderect(combo_rect))
+
+            # 明确校验：中文评价 与 得分/等级 不重叠
+            self.assertFalse(feedback_rect.colliderect(score_rect))
+            self.assertFalse(feedback_rect.colliderect(level_rect))
 
             # 右侧信息：模式提示 与 红心区域不应发生矩形相交
             mode_text = tg_mod.font_tiny.render("[英文] Tab切换", True, tg_mod.TEXT_WHITE)

@@ -53,6 +53,8 @@ BASE_FONT_SIZE_BIG = 52
 BASE_FONT_SIZE_MEDIUM = 36
 # 基准小号字体大小
 BASE_FONT_SIZE_SMALL = 26
+# 基准 Combo 字体大小（相对小号字体缩小 50%）
+BASE_FONT_SIZE_COMBO = BASE_FONT_SIZE_SMALL * 0.5
 # 基准极小字体大小
 BASE_FONT_SIZE_TINY = 20
 # 基准输入框字体大小
@@ -63,6 +65,8 @@ FONT_SIZE_BIG = _scale_px(BASE_FONT_SIZE_BIG)
 FONT_SIZE_MEDIUM = _scale_px(BASE_FONT_SIZE_MEDIUM)
 # 小号字体大小
 FONT_SIZE_SMALL = _scale_px(BASE_FONT_SIZE_SMALL)
+# Combo 字体大小
+FONT_SIZE_COMBO = _scale_px(BASE_FONT_SIZE_COMBO)
 # 极小字体大小
 FONT_SIZE_TINY = _scale_px(BASE_FONT_SIZE_TINY)
 # 输入框字体大小
@@ -233,6 +237,8 @@ SCORE_TEXT_X = _scale_px(15)
 LEVEL_TEXT_X = _scale_px(200)
 # 连击文本 X 坐标
 COMBO_TEXT_X = _scale_px(300)
+# 连击评价与连击文本间距
+COMBO_FEEDBACK_GAP = _scale_px(12)
 # 模式提示距右边偏移
 MODE_HINT_RIGHT_OFFSET = _scale_px(330)
 # 模式提示额外 Y 偏移

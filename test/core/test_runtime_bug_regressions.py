@@ -9,11 +9,36 @@
 import importlib
 import os
 
+from conf import combo_feedback as cf
 import typing_game
 from test.common import TypingGameBaseTestCase
 
 
 class RuntimeBugRegressionTestCase(TypingGameBaseTestCase):
+    def test_combo_feedback_tier_step_and_cap(self):
+        """回归：鼓励词按每5个 combo 分档，且第6档后封顶。"""
+        self.assertEqual(cf.get_feedback_tier_index(1), -1)
+        self.assertEqual(cf.get_feedback_tier_index(2), 0)
+        self.assertEqual(cf.get_feedback_tier_index(5), 0)
+        self.assertEqual(cf.get_feedback_tier_index(6), 1)
+        self.assertEqual(cf.get_feedback_tier_index(10), 1)
+        self.assertEqual(cf.get_feedback_tier_index(11), 2)
+        self.assertEqual(cf.get_feedback_tier_index(26), 5)
+        self.assertEqual(cf.get_feedback_tier_index(99), 5)
+
+    def test_combo_feedback_changes_on_each_combo_increment(self):
+        """回归：combo 每次+1时，鼓励词应更新（同档内不重复上一词）。"""
+        previous = ""
+        seen = []
+        for combo in [2, 3, 4, 5, 6, 7]:
+            current = cf.choose_combo_feedback(combo, previous)
+            self.assertNotEqual(current, "")
+            if previous:
+                self.assertNotEqual(current, previous)
+            seen.append(current)
+            previous = current
+        self.assertGreaterEqual(len(set(seen)), 3)
+
     def _assert_heart_geometry_for_scale(self, scale_ratio):
         """在给定缩放倍率下检查红心几何比例与边界。"""
         original_scale = os.environ.get("TYPING_GAME_SCALE_RATIO")

@@ -54,6 +54,7 @@ from conf.speed import (
     FALL_SPEED_RANDOM_OFFSET,
 )
 from conf.word_bank import ENGLISH_WORDS, PINYIN_WORDS
+from conf.combo_feedback import choose_combo_feedback
 from conf import game_constants as gc
 
 # ============================================================
@@ -114,6 +115,7 @@ def get_font(size, bold=False):
 font_big    = get_font(gc.FONT_SIZE_BIG, bold=True)
 font_medium = get_font(gc.FONT_SIZE_MEDIUM, bold=True)
 font_small  = get_font(gc.FONT_SIZE_SMALL)
+font_combo  = get_font(gc.FONT_SIZE_COMBO)
 font_tiny   = get_font(gc.FONT_SIZE_TINY)
 font_input  = get_font(gc.FONT_SIZE_INPUT, bold=True)
 
@@ -234,6 +236,7 @@ class TypingGame:
         self.particles = []
         self.input_text = ""
         self.combo = gc.INITIAL_COMBO
+        self.combo_feedback_word = ""
         self.max_combo = gc.INITIAL_MAX_COMBO
         self.words_cleared = gc.INITIAL_WORDS_CLEARED
         self.words_missed = gc.INITIAL_WORDS_MISSED
@@ -363,6 +366,7 @@ class TypingGame:
         # 计分
         base_score = len(word.type_text) * gc.SCORE_PER_CHAR
         self.combo += gc.GAME_STATE_PLAYING
+        self.combo_feedback_word = choose_combo_feedback(self.combo, self.combo_feedback_word)
         combo_bonus = min(self.combo, gc.COMBO_BONUS_CAP) * gc.COMBO_BONUS_UNIT
         self.score += base_score + combo_bonus
         self.words_cleared += gc.GAME_STATE_PLAYING
@@ -388,6 +392,7 @@ class TypingGame:
         word.active = False
         self.lives -= gc.GAME_STATE_PLAYING
         self.combo = gc.INITIAL_COMBO
+        self.combo_feedback_word = ""
         self.words_missed += gc.GAME_STATE_PLAYING
         self.shake_timer = gc.MISS_SHAKE_DURATION
 
@@ -516,8 +521,31 @@ class TypingGame:
 
         # Combo
         if self.combo > gc.GAME_STATE_PLAYING:
-            combo_text = font_small.render(f"Combo x{self.combo}!", True, TEXT_ORANGE)
-            screen.blit(combo_text, (gc.COMBO_TEXT_X + ox, info_y + oy))
+            anchor_bottom = info_y + oy + level_text.get_height()
+            level_right = gc.LEVEL_TEXT_X + ox + level_text.get_width()
+
+            feedback = self.combo_feedback_word
+            feedback_width = gc.GAME_STATE_MENU
+            feedback_text = None
+            if feedback:
+                feedback_text = font_small.render(feedback, True, TEXT_GREEN)
+
+                feedback_width = feedback_text.get_width()
+
+            # 根据 Lv 右边界和反馈词宽度，动态计算 Combo 左边界，避免重叠
+            combo_x = max(
+                gc.COMBO_TEXT_X + ox,
+                level_right + gc.COMBO_FEEDBACK_GAP + feedback_width + gc.COMBO_FEEDBACK_GAP,
+            )
+
+            if feedback_text:
+                feedback_x = combo_x - gc.COMBO_FEEDBACK_GAP - feedback_width
+                feedback_y = anchor_bottom - feedback_text.get_height()
+                screen.blit(feedback_text, (feedback_x, feedback_y))
+
+            combo_text = font_combo.render(f"Combo x{self.combo}!", True, TEXT_ORANGE)
+            combo_y = anchor_bottom - combo_text.get_height()
+            screen.blit(combo_text, (combo_x, combo_y))
 
         # 模式
         mode_label = "英文" if self.mode == "english" else "拼音"
@@ -750,6 +778,7 @@ class TypingGame:
         self.particles = []
         self.input_text = ""
         self.combo = gc.INITIAL_COMBO
+        self.combo_feedback_word = ""
         self.max_combo = gc.INITIAL_MAX_COMBO
         self.words_cleared = gc.INITIAL_WORDS_CLEARED
         self.words_missed = gc.INITIAL_WORDS_MISSED
