@@ -8,18 +8,21 @@ ENGLISH_WORDS = {
         "cat", "dog", "sun", "red", "big", "run", "hot", "cup",
         "hat", "box", "pen", "map", "bus", "bag", "bed", "fan",
         "fox", "pig", "egg", "ant", "ice", "jam", "key", "leg",
+        "van", "web", "quiz", "zoo",
     ],
     "medium": [
         "apple", "happy", "water", "green", "house", "music",
         "tiger", "candy", "cloud", "river", "table", "chair",
         "smile", "sleep", "train", "bread", "light", "plant",
         "stone", "dance", "beach", "dream", "fruit", "paper",
+        "jelly", "koala", "queen", "xylophone", "zebra",
     ],
     "hard": [
         "rabbit", "school", "family", "orange", "banana",
         "window", "monkey", "garden", "flower", "bridge",
         "friend", "summer", "winter", "spring", "animal",
         "planet", "rocket", "castle", "forest", "island",
+        "jungle", "voyage", "quartz", "xenon", "zipper",
     ],
 }
 
@@ -32,6 +35,9 @@ PINYIN_WORDS = {
         ("日", "ri"), ("木", "mu"), ("花", "hua"), ("鸟", "niao"),
         ("鱼", "yu"), ("马", "ma"), ("牛", "niu"), ("羊", "yang"),
         ("猫", "mao"), ("狗", "gou"), ("风", "feng"), ("雨", "yu2"),
+        ("包", "bao"), ("草", "cao"), ("家", "jia"), ("口", "kou"),
+        ("乐", "le"), ("皮", "pi"), ("去", "qu"), ("王", "wang"),
+        ("绿", "lv"), ("字", "zi"),
     ],
     "medium": [
         ("苹果", "pingguo"), ("老师", "laoshi"), ("学校", "xuexiao"),
@@ -40,6 +46,8 @@ PINYIN_WORDS = {
         ("小鸟", "xiaoniao"), ("大海", "dahai"), ("草地", "caodi"),
         ("蓝天", "lantian"), ("白云", "baiyun"), ("春天", "chuntian"),
         ("秋天", "qiutian"), ("冬天", "dongtian"), ("夏天", "xiatian"),
+        ("飞机", "feiji"), ("明月", "mingyue"), ("热水", "reshui"),
+        ("外公", "waigong"), ("绿色", "lvse"), ("桌子", "zhuozi"),
     ],
     "hard": [
         ("电脑", "diannao"), ("飞机", "feiji"), ("火车", "huoche"),
@@ -48,5 +56,6 @@ PINYIN_WORDS = {
         ("蝴蝶", "hudie"), ("蜻蜓", "qingting"), ("长颈鹿", "changjinglu"),
         ("大象", "daxiang"), ("熊猫", "xiongmao"), ("企鹅", "qie"),
         ("恐龙", "konglong"), ("宇航员", "yuhangyuan"),
+        ("宝藏", "baozang"), ("拼图", "pintu"), ("旅行", "lvxing"),
     ],
 }
