@@ -1,5 +1,5 @@
-import typing_game
 from test.common import TypingGameBaseTestCase
+import typing_game
 
 
 class InputMatchingTestCase(TypingGameBaseTestCase):
@@ -170,3 +170,25 @@ class InputMatchingTestCase(TypingGameBaseTestCase):
         self.assertFalse(self.game.words[0].active)
         self.assertTrue(self.game.words[1].active)
         self.assertTrue(self.game.words[2].active)
+
+    def test_check_input_pinyin_mode_full_match_clears_word(self):
+        # Pinyin word: display="雨", type_text="yu" (tone digit already stripped at spawn)
+        word = typing_game.FallingWord("雨", "yu", 100, 0, typing_game.TEXT_WHITE)
+        self.game.words = [word]
+
+        self.game.input_text = "yu"
+        self.game.check_input()
+
+        self.assertFalse(word.active)
+        self.assertEqual(self.game.input_text, "")
+        self.assertEqual(self.game.words_cleared, 1)
+
+    def test_check_input_pinyin_mode_partial_prefix_highlights(self):
+        word = typing_game.FallingWord("雨", "yu", 100, 0, typing_game.TEXT_WHITE)
+        self.game.words = [word]
+
+        self.game.input_text = "y"
+        self.game.check_input()
+
+        self.assertEqual(word.matched_chars, 1)
+        self.assertTrue(word.active)
