@@ -1,5 +1,5 @@
 """
-打字练习小游戏 - 适合小学4-6年级
+打字练习小游戏 - 适合小学3-6年级
 英文单词 + 中文拼音 下落消除模式
 
 依赖: pip install pygame
@@ -38,6 +38,22 @@ import pygame
 import random
 import sys
 import time
+from conf.keyboard import (
+    INPUT_PANEL_HEIGHT,
+    KEYBOARD_PANEL_HEIGHT,
+    FLASH_DURATION,
+    get_keyboard_config_for_level,
+)
+from conf.speed import (
+    SPAWN_INTERVAL_BASE,
+    SPAWN_INTERVAL_SCORE_REDUCTION,
+    SPAWN_INTERVAL_MIN,
+    FALL_SPEED_BASE,
+    FALL_SPEED_SCORE_INCREASE,
+    FALL_SPEED_MAX,
+    FALL_SPEED_RANDOM_OFFSET,
+)
+from conf.word_bank import ENGLISH_WORDS, PINYIN_WORDS
 
 # ============================================================
 # 初始化
@@ -48,6 +64,8 @@ SCREEN_W, SCREEN_H = 800, 600
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 pygame.display.set_caption("⌨️ 打字大冒险 - Typing Adventure")
 clock = pygame.time.Clock()
+
+BOTTOM_UI_HEIGHT = INPUT_PANEL_HEIGHT + KEYBOARD_PANEL_HEIGHT
 
 # ============================================================
 # 颜色
@@ -99,56 +117,6 @@ font_tiny   = get_font(20)
 font_input  = get_font(32, bold=True)
 
 # ============================================================
-# 词库
-# ============================================================
-ENGLISH_WORDS = {
-    "easy": [
-        "cat", "dog", "sun", "red", "big", "run", "hot", "cup",
-        "hat", "box", "pen", "map", "bus", "bag", "bed", "fan",
-        "fox", "pig", "egg", "ant", "ice", "jam", "key", "leg",
-    ],
-    "medium": [
-        "apple", "happy", "water", "green", "house", "music",
-        "tiger", "candy", "cloud", "river", "table", "chair",
-        "smile", "sleep", "train", "bread", "light", "plant",
-        "stone", "dance", "beach", "dream", "fruit", "paper",
-    ],
-    "hard": [
-        "rabbit", "school", "family", "orange", "banana",
-        "window", "monkey", "garden", "flower", "bridge",
-        "friend", "summer", "winter", "spring", "animal",
-        "planet", "rocket", "castle", "forest", "island",
-    ],
-}
-
-# 中文拼音词库: (汉字显示, 拼音输入)
-PINYIN_WORDS = {
-    "easy": [
-        ("大", "da"), ("小", "xiao"), ("人", "ren"), ("天", "tian"),
-        ("水", "shui"), ("火", "huo"), ("山", "shan"), ("月", "yue"),
-        ("日", "ri"), ("木", "mu"), ("花", "hua"), ("鸟", "niao"),
-        ("鱼", "yu"), ("马", "ma"), ("牛", "niu"), ("羊", "yang"),
-        ("猫", "mao"), ("狗", "gou"), ("风", "feng"), ("雨", "yu2"),
-    ],
-    "medium": [
-        ("苹果", "pingguo"), ("老师", "laoshi"), ("学校", "xuexiao"),
-        ("朋友", "pengyou"), ("快乐", "kuaile"), ("太阳", "taiyang"),
-        ("月亮", "yueliang"), ("星星", "xingxing"), ("花朵", "huaduo"),
-        ("小鸟", "xiaoniao"), ("大海", "dahai"), ("草地", "caodi"),
-        ("蓝天", "lantian"), ("白云", "baiyun"), ("春天", "chuntian"),
-        ("秋天", "qiutian"), ("冬天", "dongtian"), ("夏天", "xiatian"),
-    ],
-    "hard": [
-        ("电脑", "diannao"), ("飞机", "feiji"), ("火车", "huoche"),
-        ("图书馆", "tushuguan"), ("动物园", "dongwuyuan"),
-        ("巧克力", "qiaokeli"), ("向日葵", "xiangrikui"),
-        ("蝴蝶", "hudie"), ("蜻蜓", "qingting"), ("长颈鹿", "changjinglu"),
-        ("大象", "daxiang"), ("熊猫", "xiongmao"), ("企鹅", "qie"),
-        ("恐龙", "konglong"), ("宇航员", "yuhangyuan"),
-    ],
-}
-
-# ============================================================
 # 游戏对象
 # ============================================================
 class FallingWord:
@@ -166,7 +134,7 @@ class FallingWord:
         self.y += self.speed * dt
 
     def is_out(self):
-        return self.y > SCREEN_H - 80
+        return self.y > SCREEN_H - (BOTTOM_UI_HEIGHT + 15)
 
     def draw(self, surface):
         # 画已匹配部分（绿色）和未匹配部分（原色）
@@ -271,9 +239,37 @@ class TypingGame:
         self.stars = [Star() for _ in range(60)]
         self.shake_timer = 0          # 屏幕震动
         self.flash_timer = 0          # 消除闪光
+        self.keyboard_layout = []
+        self.keyboard_colors = {}
+        self.keyboard_metrics = {}
+        self.key_flash = {}
+        self.apply_keyboard_config()
 
         # 菜单选项
         self.menu_selection = 0       # 0=英文, 1=拼音
+
+    def apply_keyboard_config(self):
+        keyboard_config = get_keyboard_config_for_level(self.level)
+        self.keyboard_layout = keyboard_config["layout"]
+        self.keyboard_colors = keyboard_config["colors"]
+        self.keyboard_metrics = keyboard_config["metrics"]
+
+        old_flash = self.key_flash
+        self.key_flash = {}
+        for row in self.keyboard_layout:
+            for key in row:
+                if key.get("flash", False):
+                    flash_key = key["label"].lower()
+                    self.key_flash[flash_key] = old_flash.get(flash_key, 0.0)
+
+    def trigger_key_flash(self, letter):
+        key = letter.lower()
+        if key in self.key_flash:
+            self.key_flash[key] = FLASH_DURATION
+
+    def update_key_flash(self, dt):
+        for key in self.key_flash:
+            self.key_flash[key] = max(0, self.key_flash[key] - dt)
 
     def get_difficulty(self):
         if self.score < 100:
@@ -285,19 +281,17 @@ class TypingGame:
 
     def get_spawn_interval(self):
         """根据分数动态调整生成间隔"""
-        base = 2.5
-        reduction = self.score * 0.003
-        return max(0.8, base - reduction)
+        reduction = self.score * SPAWN_INTERVAL_SCORE_REDUCTION
+        return max(SPAWN_INTERVAL_MIN, SPAWN_INTERVAL_BASE - reduction)
 
     def get_fall_speed(self):
         """根据分数动态调整下落速度"""
-        base = 40
-        increase = self.score * 0.08
-        return min(120, base + increase)
+        increase = self.score * FALL_SPEED_SCORE_INCREASE
+        return min(FALL_SPEED_MAX, FALL_SPEED_BASE + increase)
 
     def spawn_word(self):
         diff = self.get_difficulty()
-        speed = self.get_fall_speed() + random.uniform(-10, 10)
+        speed = self.get_fall_speed() + random.uniform(-FALL_SPEED_RANDOM_OFFSET, FALL_SPEED_RANDOM_OFFSET)
         color = random.choice(WORD_COLORS)
 
         if self.mode == "english":
@@ -370,6 +364,7 @@ class TypingGame:
         new_level = 1 + self.score // 150
         if new_level > self.level:
             self.level = new_level
+            self.apply_keyboard_config()
 
         # 特效
         self.flash_timer = 0.15
@@ -398,6 +393,7 @@ class TypingGame:
         self.game_time += dt
         self.shake_timer = max(0, self.shake_timer - dt)
         self.flash_timer = max(0, self.flash_timer - dt)
+        self.update_key_flash(dt)
 
         # 生成新词
         self.spawn_timer -= dt
@@ -536,9 +532,9 @@ class TypingGame:
         for p in self.particles:
             p.draw(screen)
 
-        # 底部输入区域
-        input_area_y = SCREEN_H - 65
-        pygame.draw.rect(screen, INPUT_BG, (0, input_area_y, SCREEN_W, 65))
+        # 底部输入区域（上）
+        input_area_y = SCREEN_H - BOTTOM_UI_HEIGHT
+        pygame.draw.rect(screen, INPUT_BG, (0, input_area_y, SCREEN_W, INPUT_PANEL_HEIGHT))
         pygame.draw.line(screen, INPUT_BORDER, (0, input_area_y), (SCREEN_W, input_area_y), 2)
 
         # 输入框
@@ -559,6 +555,58 @@ class TypingGame:
         if self.input_text or int(time.time() * 2) % 2:
             cursor_x = box_x + 14 + font_input.size(self.input_text)[0]
             pygame.draw.rect(screen, TEXT_WHITE, (cursor_x, box_y + 6, 2, 28))
+
+        # 底部键盘区域（下）
+        keyboard_area_y = input_area_y + INPUT_PANEL_HEIGHT
+        pygame.draw.rect(screen, (30, 30, 70), (0, keyboard_area_y, SCREEN_W, KEYBOARD_PANEL_HEIGHT))
+        pygame.draw.line(screen, INPUT_BORDER, (0, keyboard_area_y), (SCREEN_W, keyboard_area_y), 1)
+        self.draw_keyboard(keyboard_area_y + 4, ox, oy)
+
+    def draw_keyboard(self, start_y, ox=0, oy=0):
+        unit_w = self.keyboard_metrics["unit_w"]
+        key_h = self.keyboard_metrics["key_h"]
+        gap_x = self.keyboard_metrics["gap_x"]
+        gap_y = self.keyboard_metrics["gap_y"]
+
+        for row_index, row in enumerate(self.keyboard_layout):
+            row_width = sum(int(unit_w * key["width"]) for key in row) + gap_x * (len(row) - 1)
+            start_x = (SCREEN_W - row_width) // 2
+            y = start_y + row_index * (key_h + gap_y)
+
+            x = start_x
+            for key in row:
+                label = key["label"]
+                zone = key["zone"]
+                key_w = int(unit_w * key["width"])
+
+                zone_color = self.keyboard_colors[zone]
+                base_fill = zone_color["fill"]
+                base_border = zone_color["border"]
+
+                flash_key = label.lower()
+                is_flashing = flash_key in self.key_flash and self.key_flash[flash_key] > 0
+                if is_flashing:
+                    flash_boost = self.keyboard_colors["flash_boost"]
+                    fill_color = (
+                        min(255, base_fill[0] + flash_boost),
+                        min(255, base_fill[1] + flash_boost),
+                        min(255, base_fill[2] + flash_boost),
+                    )
+                    border_color = self.keyboard_colors["flash_border"]
+                else:
+                    fill_color = base_fill
+                    border_color = base_border
+
+                rect = pygame.Rect(x + ox, y + oy, key_w, key_h)
+                pygame.draw.rect(screen, fill_color, rect, border_radius=4)
+                pygame.draw.rect(screen, border_color, rect, 1, border_radius=4)
+
+                if key.get("show_label", False):
+                    txt = font_tiny.render(label.upper(), True, TEXT_WHITE)
+                    txt_rect = txt.get_rect(center=rect.center)
+                    screen.blit(txt, txt_rect)
+
+                x += key_w + gap_x
 
     def draw_game_over(self):
         screen.fill(BG_COLOR)
@@ -622,6 +670,9 @@ class TypingGame:
         self.game_time = 0
         self.shake_timer = 0
         self.flash_timer = 0
+        self.apply_keyboard_config()
+        for key in self.key_flash:
+            self.key_flash[key] = 0
 
     def handle_event(self, event):
         if event.type == pygame.QUIT:
@@ -639,6 +690,9 @@ class TypingGame:
                     self.state = self.STATE_PLAYING
 
             elif self.state == self.STATE_PLAYING:
+                if event.unicode and event.unicode.lower() in self.key_flash:
+                    self.trigger_key_flash(event.unicode)
+
                 if event.key == pygame.K_ESCAPE:
                     self.state = self.STATE_MENU
                 elif event.key == pygame.K_TAB:
@@ -656,7 +710,8 @@ class TypingGame:
                     for w in self.words:
                         w.matched_chars = 0
                 elif event.unicode and event.unicode.isalpha():
-                    self.input_text += event.unicode.lower()
+                    typed_key = event.unicode.lower()
+                    self.input_text += typed_key
                     self.check_input()
 
             elif self.state == self.STATE_OVER:

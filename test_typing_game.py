@@ -1,6 +1,12 @@
 import os
 import unittest
 from unittest.mock import patch
+from conf.speed import (
+    SPAWN_INTERVAL_BASE,
+    SPAWN_INTERVAL_MIN,
+    FALL_SPEED_BASE,
+    FALL_SPEED_MAX,
+)
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
@@ -25,12 +31,12 @@ class TypingGameTestCase(unittest.TestCase):
 
     def test_spawn_interval_and_fall_speed_bounds(self):
         self.game.score = 0
-        self.assertAlmostEqual(self.game.get_spawn_interval(), 2.5)
-        self.assertAlmostEqual(self.game.get_fall_speed(), 40)
+        self.assertAlmostEqual(self.game.get_spawn_interval(), SPAWN_INTERVAL_BASE)
+        self.assertAlmostEqual(self.game.get_fall_speed(), FALL_SPEED_BASE)
 
         self.game.score = 10_000
-        self.assertAlmostEqual(self.game.get_spawn_interval(), 0.8)
-        self.assertAlmostEqual(self.game.get_fall_speed(), 120)
+        self.assertAlmostEqual(self.game.get_spawn_interval(), SPAWN_INTERVAL_MIN)
+        self.assertAlmostEqual(self.game.get_fall_speed(), FALL_SPEED_MAX)
 
     @patch("typing_game.random.randint", return_value=100)
     @patch("typing_game.random.uniform", return_value=0)
