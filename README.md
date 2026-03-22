@@ -14,6 +14,38 @@
 - 启动游戏：`python typing_game.py`
 - 运行测试：`python -m unittest discover test`
 
+## 目录树与当前程序结构
+
+```text
+TypingGame/  项目根目录，包含主程序与测试。
+├─ typing_game.py  游戏主逻辑与渲染入口。
+├─ test_typing_game.py  早期基础测试入口文件。
+├─ conf/  配置目录，集中管理参数与词库。
+│  ├─ game_constants.py  全局常量与缩放配置。
+│  ├─ keyboard.py  键盘布局与显示配置。
+│  ├─ speed.py  速度与生成节奏参数。
+│  └─ word_bank.py  英文词库与拼音词库。
+└─ test/  自动化测试目录。
+  ├─ common.py  测试基类与公共初始化。
+  ├─ core/  核心功能与回归测试集合。
+  │  ├─ test_core_layout_bounds.py  布局与缩放边界测试。
+  │  └─ test_runtime_bug_regressions.py  运行期问题回归测试。
+  ├─ version/  版本一致性相关测试。
+  ├─ version_specs/  历史版本功能说明文档。
+  └─ visual/  轻量可视化检查脚本目录。
+    └─ cursor_visual_snapshot.py  光标对齐可视检查脚本。
+```
+
+### 当前程序主要模块功能
+- `typing_game.py`：主程序入口与核心玩法（状态流转、渲染、输入匹配、计分、升级、粒子特效、键盘反馈）。
+- `conf/game_constants.py`：全局常量与缩放策略（`TYPING_GAME_SCALE_RATIO`），统一管理 UI 尺寸和行为阈值。
+- `conf/keyboard.py`：键盘布局与分层显示配置（letters / letters_numbers / full）及对应视觉参数。
+- `conf/speed.py`：下落速度、生成间隔等难度节奏参数。
+- `conf/word_bank.py`：英文词库与拼音词库数据来源。
+- `test/core/test_runtime_bug_regressions.py`：运行中发现的真实 bug 回归测试。
+- `test/core/test_core_layout_bounds.py`：缩放与布局边界测试（含 50% / 200% 边界）。
+- `test/visual/cursor_visual_snapshot.py`：光标与文本对齐的轻量可视检查脚本（默认用于本地比对）。
+
 ## 版本更新（倒序）
 
 ### v0.1.1
