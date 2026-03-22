@@ -7,7 +7,7 @@ import typing_game
 class V00FeaturesTestCase(TypingGameBaseTestCase):
     def test_v00_core_loop_and_mode(self):
         # Initial state assertions
-        self.assertEqual(self.game.mode, "english")
+        self.assertEqual(self.game.mode, "letter")
         self.assertEqual(self.game.lives, 5)
         self.assertEqual(self.game.level, 1)
         self.assertEqual(self.game.score, 0)

@@ -53,7 +53,7 @@ from conf.speed import (
     FALL_SPEED_MAX,
     FALL_SPEED_RANDOM_OFFSET,
 )
-from conf.word_bank import ENGLISH_WORDS, PINYIN_WORDS
+from conf.word_bank import LETTERS, ENGLISH_WORDS, PINYIN_WORDS
 from conf.combo_feedback import choose_combo_feedback
 from conf import game_constants as gc
 
@@ -228,7 +228,7 @@ class TypingGame:
 
     def __init__(self):
         self.state = self.STATE_MENU
-        self.mode = "english"         # "english" 或 "pinyin"
+        self.mode = "letter"          # "letter", "english" 或 "pinyin"
         self.score = gc.INITIAL_SCORE
         self.lives = gc.INITIAL_LIVES
         self.level = gc.INITIAL_LEVEL
@@ -300,7 +300,11 @@ class TypingGame:
         speed = self.get_fall_speed() + random.uniform(-FALL_SPEED_RANDOM_OFFSET, FALL_SPEED_RANDOM_OFFSET)
         color = random.choice(WORD_COLORS)
 
-        if self.mode == "english":
+        if self.mode == "letter":
+            letter = random.choice(LETTERS)
+            display = letter
+            type_text = letter
+        elif self.mode == "english":
             word = random.choice(ENGLISH_WORDS[diff])
             display = word
             type_text = word
@@ -449,7 +453,8 @@ class TypingGame:
         screen.blit(mode_title, mode_title.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_MODE_TITLE_Y)))
 
         options = [
-            ("🔤  英文单词模式  English Words", "english"),
+            ("🔤  单字母模式  Single Letters", "letter"),
+            ("📖  英文单词模式  English Words", "english"),
             ("📝  中文拼音模式  Chinese Pinyin", "pinyin"),
         ]
 
@@ -548,7 +553,8 @@ class TypingGame:
             screen.blit(combo_text, (combo_x, combo_y))
 
         # 模式
-        mode_label = "英文" if self.mode == "english" else "拼音"
+        mode_labels = {"letter": "字母", "english": "英文", "pinyin": "拼音"}
+        mode_label = mode_labels.get(self.mode, "英文")
         mode_text = font_tiny.render(f"[{mode_label}] Tab切换", True, (120, 120, 160))
         screen.blit(mode_text, (SCREEN_W - gc.MODE_HINT_RIGHT_OFFSET + ox, info_y + gc.MODE_HINT_Y_OFFSET + oy))
 
@@ -632,7 +638,12 @@ class TypingGame:
         if self.input_text:
             input_surf = font_input.render(self.input_text, True, TEXT_WHITE)
         else:
-            placeholder = "输入单词消除它们..." if self.mode == "english" else "输入拼音消除汉字..."
+            placeholders = {
+                "letter": "按下字母键消除它们...",
+                "english": "输入单词消除它们...",
+                "pinyin": "输入拼音消除汉字...",
+            }
+            placeholder = placeholders.get(self.mode, "输入单词消除它们...")
             input_surf = font_input.render(placeholder, True, (80, 80, 120))
         screen.blit(input_surf, (box_x + gc.INPUT_TEXT_X_OFFSET, box_y + gc.INPUT_TEXT_Y_OFFSET))
 
@@ -801,7 +812,12 @@ class TypingGame:
                 elif event.key == pygame.K_DOWN:
                     self.menu_selection = (self.menu_selection + gc.GAME_STATE_PLAYING) % gc.MENU_OPTION_COUNT
                 elif event.key == pygame.K_RETURN:
-                    self.mode = "english" if self.menu_selection == gc.MENU_SELECTION_ENGLISH else "pinyin"
+                    if self.menu_selection == gc.MENU_SELECTION_LETTER:
+                        self.mode = "letter"
+                    elif self.menu_selection == gc.MENU_SELECTION_ENGLISH:
+                        self.mode = "english"
+                    else:
+                        self.mode = "pinyin"
                     self.reset_game()
                     self.state = self.STATE_PLAYING
 
@@ -813,7 +829,9 @@ class TypingGame:
                     self.state = self.STATE_MENU
                 elif event.key == pygame.K_TAB:
                     # 切换模式
-                    self.mode = "pinyin" if self.mode == "english" else "english"
+                    mode_cycle = ["letter", "english", "pinyin"]
+                    idx = mode_cycle.index(self.mode) if self.mode in mode_cycle else 0
+                    self.mode = mode_cycle[(idx + 1) % len(mode_cycle)]
                     self.input_text = ""
                     for w in self.words:
                         w.matched_chars = gc.INITIAL_COMBO

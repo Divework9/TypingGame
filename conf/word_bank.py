@@ -3,6 +3,11 @@
 将英文单词词库与中文拼音词库集中管理，便于后续扩充和维护。
 """
 
+import string
+
+# 单字母模式：26个字母，不分难度
+LETTERS = list(string.ascii_lowercase)
+
 ENGLISH_WORDS = {
     "easy": [
         "cat", "dog", "sun", "red", "big", "run", "hot", "cup",

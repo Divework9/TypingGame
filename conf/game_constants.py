@@ -102,7 +102,7 @@ INITIAL_FLASH_TIMER = 0
 # 菜单初始选项索引
 INITIAL_MENU_SELECTION = 0
 # 菜单选项总数
-MENU_OPTION_COUNT = 2
+MENU_OPTION_COUNT = 3
 
 # =============================
 # 游戏状态枚举值
@@ -347,10 +347,12 @@ KEYBOARD_AREA_BORDER_WIDTH = 1
 # =============================
 # 模式选择索引
 # =============================
+# 字母模式索引
+MENU_SELECTION_LETTER = 0
 # 英文模式索引
-MENU_SELECTION_ENGLISH = 0
+MENU_SELECTION_ENGLISH = 1
 # 拼音模式索引
-MENU_SELECTION_PINYIN = 1
+MENU_SELECTION_PINYIN = 2
 
 # =============================
 # 游戏结束页布局

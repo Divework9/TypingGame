@@ -11,26 +11,26 @@
 # 新词生成间隔（秒）
 # -----------------------------
 # 初始生成间隔：分数为 0 时，每隔 SPAWN_INTERVAL_BASE 秒生成一个词
-SPAWN_INTERVAL_BASE = 3
+SPAWN_INTERVAL_BASE = 4.5
 
 # 每 1 分减少的生成间隔（秒），值越大越快
-SPAWN_INTERVAL_SCORE_REDUCTION = 0.003
+SPAWN_INTERVAL_SCORE_REDUCTION = 0.002
 
 # 生成间隔下限（秒），防止后期刷词过快
-SPAWN_INTERVAL_MIN = 2
+SPAWN_INTERVAL_MIN = 2.5
 
 
 # -----------------------------
 # 下落速度（像素/秒）
 # -----------------------------
 # 初始下落速度：分数为 0 时的基础速度
-FALL_SPEED_BASE = 20
+FALL_SPEED_BASE = 10
 
 # 每 1 分增加的下落速度（像素/秒）
-FALL_SPEED_SCORE_INCREASE = 0.08
+FALL_SPEED_SCORE_INCREASE = 0.01
 
 # 下落速度上限（像素/秒），防止后期不可玩
-FALL_SPEED_MAX = 60
+FALL_SPEED_MAX = 30
 
 
 # -----------------------------
