@@ -24,17 +24,17 @@ SPAWN_INTERVAL_MIN = 2
 # 下落速度（像素/秒）
 # -----------------------------
 # 初始下落速度：分数为 0 时的基础速度
-FALL_SPEED_BASE = 40
+FALL_SPEED_BASE = 20
 
 # 每 1 分增加的下落速度（像素/秒）
 FALL_SPEED_SCORE_INCREASE = 0.08
 
 # 下落速度上限（像素/秒），防止后期不可玩
-FALL_SPEED_MAX = 100
+FALL_SPEED_MAX = 60
 
 
 # -----------------------------
 # 速度随机波动（像素/秒）
 # -----------------------------
 # 每个词在基础速度上增加 [-RANDOM_OFFSET, +RANDOM_OFFSET] 的扰动
-FALL_SPEED_RANDOM_OFFSET = 10
+FALL_SPEED_RANDOM_OFFSET = 5

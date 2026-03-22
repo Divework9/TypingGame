@@ -529,19 +529,35 @@ class TypingGame:
         heart_y = info_y + gc.HEART_PANEL_Y_OFFSET
         for i in range(gc.HEART_COUNT):
             color = HEALTH_RED if i < self.lives else (60, 60, 60)
-            pygame.draw.circle(screen, color, (heart_x + i * gc.HEART_GAP + ox, heart_y + oy), gc.HEART_MAIN_RADIUS)
-            # 简单的心形：两个圆+一个三角
+
+            center_x = heart_x + i * gc.HEART_GAP + ox
+            center_y = heart_y + oy
+            left_lobe_x = center_x - gc.HEART_LOBE_X_OFFSET
+            right_lobe_x = center_x + gc.HEART_LOBE_X_OFFSET
+            lobe_y = center_y - gc.HEART_LOBE_Y_OFFSET
+            bottom_y = center_y + gc.HEART_MAIN_RADIUS + gc.HEART_LOBE_RADIUS
+
+            # 缩放自适应心形：两个上半圆 + 下三角
             pygame.draw.circle(
                 screen,
                 color,
-                (heart_x + i * gc.HEART_GAP - gc.HEART_LOBE_X_OFFSET + ox, heart_y - gc.HEART_LOBE_Y_OFFSET + oy),
+                (left_lobe_x, lobe_y),
                 gc.HEART_LOBE_RADIUS,
             )
             pygame.draw.circle(
                 screen,
                 color,
-                (heart_x + i * gc.HEART_GAP + gc.HEART_LOBE_X_OFFSET + ox, heart_y - gc.HEART_LOBE_Y_OFFSET + oy),
+                (right_lobe_x, lobe_y),
                 gc.HEART_LOBE_RADIUS,
+            )
+            pygame.draw.polygon(
+                screen,
+                color,
+                [
+                    (left_lobe_x - gc.HEART_LOBE_RADIUS, lobe_y),
+                    (right_lobe_x + gc.HEART_LOBE_RADIUS, lobe_y),
+                    (center_x, bottom_y),
+                ],
             )
 
         # 分隔线
@@ -594,12 +610,8 @@ class TypingGame:
 
         # 光标闪烁
         if self.input_text or int(time.time() * gc.CURSOR_BLINK_SPEED) % gc.CURSOR_BLINK_MOD:
-            cursor_x = box_x + gc.CURSOR_X_BASE_OFFSET + font_input.size(self.input_text)[gc.GAME_STATE_MENU]
-            pygame.draw.rect(
-                screen,
-                TEXT_WHITE,
-                (cursor_x, box_y + gc.CURSOR_Y_OFFSET, gc.CURSOR_WIDTH, gc.CURSOR_HEIGHT),
-            )
+            cursor_rect = self._compute_input_cursor_rect(box_x, box_y, box_h)
+            pygame.draw.rect(screen, TEXT_WHITE, cursor_rect)
 
         # 底部键盘区域（下）
         keyboard_area_y = input_area_y + INPUT_PANEL_HEIGHT
@@ -616,6 +628,26 @@ class TypingGame:
             gc.KEYBOARD_AREA_BORDER_WIDTH,
         )
         self.draw_keyboard(keyboard_area_y + gc.KEYBOARD_DRAW_Y_OFFSET, ox, oy)
+
+    def _compute_input_cursor_rect(self, box_x, box_y, box_h):
+        """计算输入光标位置：在缩放下与输入文字保持底部对齐。"""
+        text_top = box_y + gc.INPUT_TEXT_Y_OFFSET
+        typed_width = font_input.size(self.input_text)[0]
+        cursor_x = box_x + gc.CURSOR_X_BASE_OFFSET + typed_width
+
+        # 以输入字体渲染高度为基准，统一做底部对齐
+        text_h = font_input.get_height()
+        cursor_h = max(gc.GAME_STATE_PLAYING, min(gc.CURSOR_HEIGHT, text_h))
+        text_bottom = text_top + text_h
+        cursor_y = text_bottom - cursor_h
+
+        # 钳制到输入框可视区域
+        top_bound = box_y + gc.INPUT_BOX_BORDER_WIDTH
+        bottom_bound = box_y + box_h - gc.INPUT_BOX_BORDER_WIDTH
+        cursor_y = max(top_bound, min(int(cursor_y), bottom_bound - gc.GAME_STATE_PLAYING))
+        cursor_h = max(gc.GAME_STATE_PLAYING, min(int(cursor_h), bottom_bound - cursor_y))
+
+        return pygame.Rect(int(cursor_x), int(cursor_y), gc.CURSOR_WIDTH, cursor_h)
 
     def draw_keyboard(self, start_y, ox=gc.GAME_STATE_MENU, oy=gc.GAME_STATE_MENU):
         unit_w = self.keyboard_metrics["unit_w"]

@@ -1,7 +1,8 @@
 from copy import deepcopy
+from conf import game_constants as gc
 
-INPUT_PANEL_HEIGHT = 65
-KEYBOARD_PANEL_HEIGHT = 145
+INPUT_PANEL_HEIGHT = gc.INPUT_PANEL_HEIGHT
+KEYBOARD_PANEL_HEIGHT = gc.KEYBOARD_PANEL_HEIGHT
 FLASH_DURATION = 0.18
 
 
@@ -91,10 +92,10 @@ BASE_LAYOUT = [
 
 
 COMMON_METRICS = {
-    "unit_w": 37,
-    "key_h": 22,
-    "gap_x": 4,
-    "gap_y": 4,
+    "unit_w": gc.KEYBOARD_UNIT_W,
+    "key_h": gc.KEYBOARD_KEY_H,
+    "gap_x": gc.KEYBOARD_GAP_X,
+    "gap_y": gc.KEYBOARD_GAP_Y,
 }
 
 
