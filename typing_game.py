@@ -54,13 +54,14 @@ from conf.speed import (
     FALL_SPEED_RANDOM_OFFSET,
 )
 from conf.word_bank import ENGLISH_WORDS, PINYIN_WORDS
+from conf import game_constants as gc
 
 # ============================================================
 # 初始化
 # ============================================================
 pygame.init()
 
-SCREEN_W, SCREEN_H = 800, 600
+SCREEN_W, SCREEN_H = gc.SCREEN_WIDTH, gc.SCREEN_HEIGHT
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 pygame.display.set_caption("⌨️ 打字大冒险 - Typing Adventure")
 clock = pygame.time.Clock()
@@ -104,17 +105,17 @@ def get_font(size, bold=False):
         try:
             f = pygame.font.SysFont(name, size, bold=bold)
             # 测试能否渲染中文
-            f.render("测试", True, (255, 255, 255))
+            f.render("测试", True, TEXT_WHITE)
             return f
         except:
             continue
     return pygame.font.Font(None, size)
 
-font_big    = get_font(52, bold=True)
-font_medium = get_font(36, bold=True)
-font_small  = get_font(26)
-font_tiny   = get_font(20)
-font_input  = get_font(32, bold=True)
+font_big    = get_font(gc.FONT_SIZE_BIG, bold=True)
+font_medium = get_font(gc.FONT_SIZE_MEDIUM, bold=True)
+font_small  = get_font(gc.FONT_SIZE_SMALL)
+font_tiny   = get_font(gc.FONT_SIZE_TINY)
+font_input  = get_font(gc.FONT_SIZE_INPUT, bold=True)
 
 # ============================================================
 # 游戏对象
@@ -124,17 +125,17 @@ class FallingWord:
         self.display_text = display_text   # 屏幕上显示的文字
         self.type_text = type_text         # 需要输入的内容
         self.x = x
-        self.y = -30
+        self.y = gc.FALLING_WORD_START_Y
         self.speed = speed
         self.color = color
-        self.matched_chars = 0             # 已匹配的字符数
+        self.matched_chars = gc.INITIAL_COMBO  # 已匹配的字符数
         self.active = True
 
     def update(self, dt):
         self.y += self.speed * dt
 
     def is_out(self):
-        return self.y > SCREEN_H - (BOTTOM_UI_HEIGHT + 15)
+        return self.y > SCREEN_H - (BOTTOM_UI_HEIGHT + gc.FALLING_WORD_OUT_MARGIN)
 
     def draw(self, surface):
         # 画已匹配部分（绿色）和未匹配部分（原色）
@@ -147,13 +148,13 @@ class FallingWord:
             hanzi_surf = font_medium.render(self.display_text, True, self.color)
             surface.blit(hanzi_surf, (self.x, self.y))
             # 拼音（已输入部分绿色 + 未输入部分白色）
-            pinyin_y = self.y + 40
+            pinyin_y = self.y + gc.PINYIN_TEXT_Y_OFFSET
             if typed:
                 typed_surf = font_small.render(typed, True, MATCH_COLOR)
                 surface.blit(typed_surf, (self.x, pinyin_y))
                 offset = typed_surf.get_width()
             else:
-                offset = 0
+                offset = gc.INITIAL_COMBO
             if remaining:
                 remain_surf = font_small.render(remaining, True, TEXT_WHITE)
                 surface.blit(remain_surf, (self.x + offset, pinyin_y))
@@ -164,7 +165,7 @@ class FallingWord:
                 surface.blit(typed_surf, (self.x, self.y))
                 offset = typed_surf.get_width()
             else:
-                offset = 0
+                offset = gc.INITIAL_COMBO
             if remaining:
                 remain_surf = font_medium.render(remaining, True, self.color)
                 surface.blit(remain_surf, (self.x + offset, self.y))
@@ -175,41 +176,43 @@ class Particle:
     def __init__(self, x, y, color):
         self.x = x
         self.y = y
-        self.vx = random.uniform(-150, 150)
-        self.vy = random.uniform(-200, -50)
-        self.life = 1.0
+        self.vx = random.uniform(gc.PARTICLE_VX_MIN, gc.PARTICLE_VX_MAX)
+        self.vy = random.uniform(gc.PARTICLE_VY_MIN, gc.PARTICLE_VY_MAX)
+        self.life = gc.PARTICLE_LIFE_INITIAL
         self.color = color
-        self.size = random.randint(3, 7)
+        self.size = random.randint(gc.PARTICLE_SIZE_MIN, gc.PARTICLE_SIZE_MAX)
 
     def update(self, dt):
         self.x += self.vx * dt
         self.y += self.vy * dt
-        self.vy += 300 * dt  # 重力
-        self.life -= dt * 2
-        return self.life > 0
+        self.vy += gc.PARTICLE_GRAVITY * dt  # 重力
+        self.life -= dt * gc.PARTICLE_LIFE_DECAY_RATE
+        return self.life > gc.INITIAL_COMBO
 
     def draw(self, surface):
-        alpha = max(0, int(self.life * 255))
+        alpha = max(gc.INITIAL_COMBO, int(self.life * gc.PARTICLE_ALPHA_MAX))
         r, g, b = self.color
-        s = max(1, int(self.size * self.life))
+        s = max(gc.PARTICLE_DRAW_SIZE_MIN, int(self.size * self.life))
         pygame.draw.circle(surface, (r, g, b), (int(self.x), int(self.y)), s)
 
 
 class Star:
     """背景星星"""
     def __init__(self):
-        self.x = random.randint(0, SCREEN_W)
-        self.y = random.randint(0, SCREEN_H)
-        self.size = random.uniform(0.5, 2)
-        self.blink_speed = random.uniform(1, 3)
-        self.phase = random.uniform(0, 6.28)
+        self.x = random.randint(gc.GAME_STATE_MENU, SCREEN_W)
+        self.y = random.randint(gc.GAME_STATE_MENU, SCREEN_H)
+        self.size = random.uniform(gc.STAR_SIZE_MIN, gc.STAR_SIZE_MAX)
+        self.blink_speed = random.uniform(gc.STAR_BLINK_SPEED_MIN, gc.STAR_BLINK_SPEED_MAX)
+        self.phase = random.uniform(gc.GAME_STATE_MENU, gc.STAR_PHASE_MAX)
 
     def draw(self, surface, t):
         import math
-        brightness = 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * self.blink_speed + self.phase))
-        c = int(255 * brightness)
-        color = (c, c, int(c * 0.9))
-        pygame.draw.circle(surface, color, (int(self.x), int(self.y)), max(1, int(self.size)))
+        brightness = gc.STAR_BRIGHTNESS_BASE + gc.STAR_BRIGHTNESS_AMPLITUDE * (
+            gc.STAR_SINE_BASE + gc.STAR_SINE_AMPLITUDE * math.sin(t * self.blink_speed + self.phase)
+        )
+        c = int(gc.PARTICLE_ALPHA_MAX * brightness)
+        color = (c, c, int(c * gc.STAR_BLUE_RATIO))
+        pygame.draw.circle(surface, color, (int(self.x), int(self.y)), max(gc.STAR_DRAW_SIZE_MIN, int(self.size)))
 
 
 # ============================================================
@@ -217,28 +220,28 @@ class Star:
 # ============================================================
 class TypingGame:
     # 游戏状态
-    STATE_MENU    = 0
-    STATE_PLAYING = 1
-    STATE_OVER    = 2
+    STATE_MENU = gc.GAME_STATE_MENU
+    STATE_PLAYING = gc.GAME_STATE_PLAYING
+    STATE_OVER = gc.GAME_STATE_OVER
 
     def __init__(self):
         self.state = self.STATE_MENU
         self.mode = "english"         # "english" 或 "pinyin"
-        self.score = 0
-        self.lives = 5
-        self.level = 1
+        self.score = gc.INITIAL_SCORE
+        self.lives = gc.INITIAL_LIVES
+        self.level = gc.INITIAL_LEVEL
         self.words = []               # 当前屏幕上的下落词
         self.particles = []
         self.input_text = ""
-        self.combo = 0
-        self.max_combo = 0
-        self.words_cleared = 0
-        self.words_missed = 0
-        self.spawn_timer = 0
-        self.game_time = 0
-        self.stars = [Star() for _ in range(60)]
-        self.shake_timer = 0          # 屏幕震动
-        self.flash_timer = 0          # 消除闪光
+        self.combo = gc.INITIAL_COMBO
+        self.max_combo = gc.INITIAL_MAX_COMBO
+        self.words_cleared = gc.INITIAL_WORDS_CLEARED
+        self.words_missed = gc.INITIAL_WORDS_MISSED
+        self.spawn_timer = gc.INITIAL_SPAWN_TIMER
+        self.game_time = gc.INITIAL_GAME_TIME
+        self.stars = [Star() for _ in range(gc.STAR_COUNT)]
+        self.shake_timer = gc.INITIAL_SHAKE_TIMER  # 屏幕震动
+        self.flash_timer = gc.INITIAL_FLASH_TIMER  # 消除闪光
         self.keyboard_layout = []
         self.keyboard_colors = {}
         self.keyboard_metrics = {}
@@ -246,7 +249,7 @@ class TypingGame:
         self.apply_keyboard_config()
 
         # 菜单选项
-        self.menu_selection = 0       # 0=英文, 1=拼音
+        self.menu_selection = gc.INITIAL_MENU_SELECTION
 
     def apply_keyboard_config(self):
         keyboard_config = get_keyboard_config_for_level(self.level)
@@ -260,7 +263,7 @@ class TypingGame:
             for key in row:
                 if key.get("flash", False):
                     flash_key = key["label"].lower()
-                    self.key_flash[flash_key] = old_flash.get(flash_key, 0.0)
+                    self.key_flash[flash_key] = old_flash.get(flash_key, gc.INITIAL_FLASH_TIMER)
 
     def trigger_key_flash(self, letter):
         key = letter.lower()
@@ -269,12 +272,12 @@ class TypingGame:
 
     def update_key_flash(self, dt):
         for key in self.key_flash:
-            self.key_flash[key] = max(0, self.key_flash[key] - dt)
+            self.key_flash[key] = max(gc.INITIAL_FLASH_TIMER, self.key_flash[key] - dt)
 
     def get_difficulty(self):
-        if self.score < 100:
+        if self.score < gc.DIFFICULTY_MEDIUM_SCORE:
             return "easy"
-        elif self.score < 300:
+        elif self.score < gc.DIFFICULTY_HARD_SCORE:
             return "medium"
         else:
             return "hard"
@@ -305,14 +308,14 @@ class TypingGame:
             type_text = ''.join(c for c in pinyin if not c.isdigit())
 
         # 计算文字宽度防止超出屏幕
-        test_surf = font_medium.render(display, True, (255,255,255))
-        max_x = SCREEN_W - test_surf.get_width() - 20
-        x = random.randint(20, max(30, max_x))
+        test_surf = font_medium.render(display, True, TEXT_WHITE)
+        max_x = SCREEN_W - test_surf.get_width() - gc.SPAWN_X_MARGIN
+        x = random.randint(gc.SPAWN_X_MARGIN, max(gc.SPAWN_X_FALLBACK_MIN, max_x))
 
         # 避免和已有词重叠
         for existing in self.words:
-            if abs(existing.x - x) < 100 and existing.y < 60:
-                x = random.randint(20, max(30, max_x))
+            if abs(existing.x - x) < gc.SPAWN_OVERLAP_X_THRESHOLD and existing.y < gc.SPAWN_OVERLAP_Y_THRESHOLD:
+                x = random.randint(gc.SPAWN_X_MARGIN, max(gc.SPAWN_X_FALLBACK_MIN, max_x))
                 break
 
         self.words.append(FallingWord(display, type_text, x, speed, color))
@@ -321,69 +324,74 @@ class TypingGame:
         """检查当前输入是否匹配任何下落词 - 使用滑动窗口前缀匹配"""
         if not self.input_text:
             for w in self.words:
-                w.matched_chars = 0
+                w.matched_chars = gc.INITIAL_COMBO
             return
 
         input_lower = self.input_text.lower()
+        exact_match_candidates = []
 
-        for w in self.words:
+        for index, w in enumerate(self.words):
             if not w.active:
-                w.matched_chars = 0
+                w.matched_chars = gc.INITIAL_COMBO
                 continue
 
-            matched = 0
-            should_clear = False
+            matched = gc.INITIAL_COMBO
             for start_pos in range(len(input_lower)):
                 substring = input_lower[start_pos:]
                 if w.type_text.startswith(substring):
                     matched = len(substring)
                     if substring == w.type_text:
-                        should_clear = True
+                        exact_match_candidates.append({"y": w.y, "index": index, "word": w})
                     break
 
             w.matched_chars = matched
 
-            if should_clear:
-                self.clear_word(w)
-                self.input_text = ""
-                return
+        if exact_match_candidates:
+            # 同词同时命中时，优先消除更靠近底部（y更大）的目标；同y时按原列表顺序稳定处理
+            target = max(exact_match_candidates, key=lambda item: (item["y"], -item["index"]))["word"]
+            self.clear_word(target)
+            self.input_text = ""
+            # 清除后剩余词不应保留旧高亮状态
+            for w in self.words:
+                if w.active:
+                    w.matched_chars = gc.INITIAL_COMBO
 
     def clear_word(self, word):
         """消除一个词"""
         word.active = False
 
         # 计分
-        base_score = len(word.type_text) * 10
-        self.combo += 1
-        combo_bonus = min(self.combo, 10) * 5
+        base_score = len(word.type_text) * gc.SCORE_PER_CHAR
+        self.combo += gc.GAME_STATE_PLAYING
+        combo_bonus = min(self.combo, gc.COMBO_BONUS_CAP) * gc.COMBO_BONUS_UNIT
         self.score += base_score + combo_bonus
-        self.words_cleared += 1
+        self.words_cleared += gc.GAME_STATE_PLAYING
         self.max_combo = max(self.max_combo, self.combo)
 
         # 升级检测
-        new_level = 1 + self.score // 150
+        new_level = gc.INITIAL_LEVEL + self.score // gc.LEVEL_SCORE_STEP
         if new_level > self.level:
             self.level = new_level
             self.apply_keyboard_config()
 
         # 特效
-        self.flash_timer = 0.15
-        for _ in range(15):
+        self.flash_timer = gc.CLEAR_FLASH_DURATION
+        for _ in range(gc.CLEAR_PARTICLE_COUNT):
             self.particles.append(Particle(
-                word.x + random.randint(0, 80),
-                word.y + 15,
+                word.x + random.randint(gc.GAME_STATE_MENU, gc.CLEAR_PARTICLE_X_JITTER),
+                word.y + gc.CLEAR_PARTICLE_Y_OFFSET,
                 word.color
             ))
 
     def miss_word(self, word):
         """漏掉一个词"""
         word.active = False
-        self.lives -= 1
-        self.combo = 0
-        self.words_missed += 1
-        self.shake_timer = 0.3
+        self.lives -= gc.GAME_STATE_PLAYING
+        self.combo = gc.INITIAL_COMBO
+        self.words_missed += gc.GAME_STATE_PLAYING
+        self.shake_timer = gc.MISS_SHAKE_DURATION
 
-        if self.lives <= 0:
+        if self.lives <= gc.GAME_STATE_MENU:
             self.state = self.STATE_OVER
 
     def update(self, dt):
@@ -391,13 +399,13 @@ class TypingGame:
             return
 
         self.game_time += dt
-        self.shake_timer = max(0, self.shake_timer - dt)
-        self.flash_timer = max(0, self.flash_timer - dt)
+        self.shake_timer = max(gc.INITIAL_SHAKE_TIMER, self.shake_timer - dt)
+        self.flash_timer = max(gc.INITIAL_FLASH_TIMER, self.flash_timer - dt)
         self.update_key_flash(dt)
 
         # 生成新词
         self.spawn_timer -= dt
-        if self.spawn_timer <= 0:
+        if self.spawn_timer <= gc.GAME_STATE_MENU:
             self.spawn_word()
             self.spawn_timer = self.get_spawn_interval()
 
@@ -424,16 +432,16 @@ class TypingGame:
 
         # 标题
         title = font_big.render("打字大冒险", True, TEXT_YELLOW)
-        title_rect = title.get_rect(center=(SCREEN_W // 2, 120))
+        title_rect = title.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_TITLE_Y))
         screen.blit(title, title_rect)
 
         subtitle = font_small.render("Typing Adventure", True, TEXT_CYAN)
-        sub_rect = subtitle.get_rect(center=(SCREEN_W // 2, 175))
+        sub_rect = subtitle.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_SUBTITLE_Y))
         screen.blit(subtitle, sub_rect)
 
         # 模式选择
         mode_title = font_small.render("选择模式 / Select Mode:", True, TEXT_WHITE)
-        screen.blit(mode_title, mode_title.get_rect(center=(SCREEN_W // 2, 260)))
+        screen.blit(mode_title, mode_title.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_MODE_TITLE_Y)))
 
         options = [
             ("🔤  英文单词模式  English Words", "english"),
@@ -441,20 +449,25 @@ class TypingGame:
         ]
 
         for i, (text, mode) in enumerate(options):
-            y = 320 + i * 70
+            y = gc.MENU_OPTION_START_Y + i * gc.MENU_OPTION_STEP_Y
             is_selected = (i == self.menu_selection)
 
             if is_selected:
                 # 选中框
-                box_rect = pygame.Rect(SCREEN_W // 2 - 220, y - 10, 440, 50)
-                pygame.draw.rect(screen, (60, 60, 120), box_rect, border_radius=10)
-                pygame.draw.rect(screen, TEXT_CYAN, box_rect, 2, border_radius=10)
+                box_rect = pygame.Rect(
+                    SCREEN_W // gc.MENU_OPTION_COUNT - gc.MENU_BOX_HALF_WIDTH,
+                    y - gc.MENU_BOX_Y_OFFSET,
+                    gc.MENU_BOX_WIDTH,
+                    gc.MENU_BOX_HEIGHT,
+                )
+                pygame.draw.rect(screen, (60, 60, 120), box_rect, border_radius=gc.MENU_BOX_RADIUS)
+                pygame.draw.rect(screen, TEXT_CYAN, box_rect, gc.MENU_OPTION_COUNT, border_radius=gc.MENU_BOX_RADIUS)
                 color = TEXT_YELLOW
             else:
                 color = (150, 150, 180)
 
             opt_surf = font_small.render(text, True, color)
-            opt_rect = opt_surf.get_rect(center=(SCREEN_W // 2, y + 12))
+            opt_rect = opt_surf.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, y + gc.MENU_OPTION_TEXT_Y_OFFSET))
             screen.blit(opt_surf, opt_rect)
 
         # 操作提示
@@ -464,17 +477,17 @@ class TypingGame:
         ]
         for i, hint in enumerate(hints):
             h_surf = font_tiny.render(hint, True, (120, 120, 160))
-            h_rect = h_surf.get_rect(center=(SCREEN_W // 2, 490 + i * 28))
+            h_rect = h_surf.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_HINT_START_Y + i * gc.MENU_HINT_STEP_Y))
             screen.blit(h_surf, h_rect)
 
     def draw_game(self):
         # 屏幕震动偏移
         import math
-        if self.shake_timer > 0:
-            ox = random.randint(-4, 4)
-            oy = random.randint(-4, 4)
+        if self.shake_timer > gc.GAME_STATE_MENU:
+            ox = random.randint(gc.SHAKE_OFFSET_MIN, gc.SHAKE_OFFSET_MAX)
+            oy = random.randint(gc.SHAKE_OFFSET_MIN, gc.SHAKE_OFFSET_MAX)
         else:
-            ox, oy = 0, 0
+            ox, oy = gc.GAME_STATE_MENU, gc.GAME_STATE_MENU
 
         screen.fill(BG_COLOR)
 
@@ -484,45 +497,61 @@ class TypingGame:
             star.draw(screen, t)
 
         # 闪光效果
-        if self.flash_timer > 0:
-            flash_alpha = int(self.flash_timer / 0.15 * 40)
+        if self.flash_timer > gc.GAME_STATE_MENU:
+            flash_alpha = int(self.flash_timer / gc.CLEAR_FLASH_DURATION * gc.CLEAR_FLASH_ALPHA_MAX)
             flash_surf = pygame.Surface((SCREEN_W, SCREEN_H))
-            flash_surf.fill((255, 255, 255))
+            flash_surf.fill(TEXT_WHITE)
             flash_surf.set_alpha(flash_alpha)
-            screen.blit(flash_surf, (0, 0))
+            screen.blit(flash_surf, (gc.GAME_STATE_MENU, gc.GAME_STATE_MENU))
 
         # 顶部信息栏
-        info_y = 8
+        info_y = gc.TOP_INFO_Y
         # 分数
         score_text = font_small.render(f"分数: {self.score}", True, TEXT_YELLOW)
-        screen.blit(score_text, (15 + ox, info_y + oy))
+        screen.blit(score_text, (gc.SCORE_TEXT_X + ox, info_y + oy))
 
         # 等级
         level_text = font_small.render(f"Lv.{self.level}", True, TEXT_CYAN)
-        screen.blit(level_text, (200 + ox, info_y + oy))
+        screen.blit(level_text, (gc.LEVEL_TEXT_X + ox, info_y + oy))
 
         # Combo
-        if self.combo > 1:
+        if self.combo > gc.GAME_STATE_PLAYING:
             combo_text = font_small.render(f"Combo x{self.combo}!", True, TEXT_ORANGE)
-            screen.blit(combo_text, (300 + ox, info_y + oy))
+            screen.blit(combo_text, (gc.COMBO_TEXT_X + ox, info_y + oy))
 
         # 模式
         mode_label = "英文" if self.mode == "english" else "拼音"
         mode_text = font_tiny.render(f"[{mode_label}] Tab切换", True, (120, 120, 160))
-        screen.blit(mode_text, (SCREEN_W - 170 + ox, info_y + 5 + oy))
+        screen.blit(mode_text, (SCREEN_W - gc.MODE_HINT_RIGHT_OFFSET + ox, info_y + gc.MODE_HINT_Y_OFFSET + oy))
 
         # 生命值
-        heart_x = SCREEN_W - 170
-        heart_y = info_y + 30
-        for i in range(5):
+        heart_x = SCREEN_W - gc.HEART_PANEL_RIGHT_OFFSET
+        heart_y = info_y + gc.HEART_PANEL_Y_OFFSET
+        for i in range(gc.HEART_COUNT):
             color = HEALTH_RED if i < self.lives else (60, 60, 60)
-            pygame.draw.circle(screen, color, (heart_x + i * 30 + ox, heart_y + oy), 10)
+            pygame.draw.circle(screen, color, (heart_x + i * gc.HEART_GAP + ox, heart_y + oy), gc.HEART_MAIN_RADIUS)
             # 简单的心形：两个圆+一个三角
-            pygame.draw.circle(screen, color, (heart_x + i * 30 - 5 + ox, heart_y - 4 + oy), 6)
-            pygame.draw.circle(screen, color, (heart_x + i * 30 + 5 + ox, heart_y - 4 + oy), 6)
+            pygame.draw.circle(
+                screen,
+                color,
+                (heart_x + i * gc.HEART_GAP - gc.HEART_LOBE_X_OFFSET + ox, heart_y - gc.HEART_LOBE_Y_OFFSET + oy),
+                gc.HEART_LOBE_RADIUS,
+            )
+            pygame.draw.circle(
+                screen,
+                color,
+                (heart_x + i * gc.HEART_GAP + gc.HEART_LOBE_X_OFFSET + ox, heart_y - gc.HEART_LOBE_Y_OFFSET + oy),
+                gc.HEART_LOBE_RADIUS,
+            )
 
         # 分隔线
-        pygame.draw.line(screen, (60, 60, 100), (0, 55), (SCREEN_W, 55), 1)
+        pygame.draw.line(
+            screen,
+            (60, 60, 100),
+            (gc.GAME_STATE_MENU, gc.TOP_DIVIDER_Y),
+            (SCREEN_W, gc.TOP_DIVIDER_Y),
+            gc.TOP_DIVIDER_WIDTH,
+        )
 
         # 下落词
         for w in self.words:
@@ -534,14 +563,26 @@ class TypingGame:
 
         # 底部输入区域（上）
         input_area_y = SCREEN_H - BOTTOM_UI_HEIGHT
-        pygame.draw.rect(screen, INPUT_BG, (0, input_area_y, SCREEN_W, INPUT_PANEL_HEIGHT))
-        pygame.draw.line(screen, INPUT_BORDER, (0, input_area_y), (SCREEN_W, input_area_y), 2)
+        pygame.draw.rect(screen, INPUT_BG, (gc.GAME_STATE_MENU, input_area_y, SCREEN_W, INPUT_PANEL_HEIGHT))
+        pygame.draw.line(
+            screen,
+            INPUT_BORDER,
+            (gc.GAME_STATE_MENU, input_area_y),
+            (SCREEN_W, input_area_y),
+            gc.INPUT_AREA_BORDER_WIDTH,
+        )
 
         # 输入框
-        box_x, box_y = 20, input_area_y + 12
-        box_w, box_h = SCREEN_W - 40, 40
-        pygame.draw.rect(screen, (30, 30, 65), (box_x, box_y, box_w, box_h), border_radius=8)
-        pygame.draw.rect(screen, INPUT_BORDER, (box_x, box_y, box_w, box_h), 2, border_radius=8)
+        box_x, box_y = gc.INPUT_BOX_X, input_area_y + gc.INPUT_BOX_Y_OFFSET
+        box_w, box_h = SCREEN_W - gc.INPUT_BOX_WIDTH_MARGIN, gc.INPUT_BOX_HEIGHT
+        pygame.draw.rect(screen, (30, 30, 65), (box_x, box_y, box_w, box_h), border_radius=gc.INPUT_BOX_RADIUS)
+        pygame.draw.rect(
+            screen,
+            INPUT_BORDER,
+            (box_x, box_y, box_w, box_h),
+            gc.INPUT_BOX_BORDER_WIDTH,
+            border_radius=gc.INPUT_BOX_RADIUS,
+        )
 
         # 输入文字
         if self.input_text:
@@ -549,28 +590,42 @@ class TypingGame:
         else:
             placeholder = "输入单词消除它们..." if self.mode == "english" else "输入拼音消除汉字..."
             input_surf = font_input.render(placeholder, True, (80, 80, 120))
-        screen.blit(input_surf, (box_x + 12, box_y + 5))
+        screen.blit(input_surf, (box_x + gc.INPUT_TEXT_X_OFFSET, box_y + gc.INPUT_TEXT_Y_OFFSET))
 
         # 光标闪烁
-        if self.input_text or int(time.time() * 2) % 2:
-            cursor_x = box_x + 14 + font_input.size(self.input_text)[0]
-            pygame.draw.rect(screen, TEXT_WHITE, (cursor_x, box_y + 6, 2, 28))
+        if self.input_text or int(time.time() * gc.CURSOR_BLINK_SPEED) % gc.CURSOR_BLINK_MOD:
+            cursor_x = box_x + gc.CURSOR_X_BASE_OFFSET + font_input.size(self.input_text)[gc.GAME_STATE_MENU]
+            pygame.draw.rect(
+                screen,
+                TEXT_WHITE,
+                (cursor_x, box_y + gc.CURSOR_Y_OFFSET, gc.CURSOR_WIDTH, gc.CURSOR_HEIGHT),
+            )
 
         # 底部键盘区域（下）
         keyboard_area_y = input_area_y + INPUT_PANEL_HEIGHT
-        pygame.draw.rect(screen, (30, 30, 70), (0, keyboard_area_y, SCREEN_W, KEYBOARD_PANEL_HEIGHT))
-        pygame.draw.line(screen, INPUT_BORDER, (0, keyboard_area_y), (SCREEN_W, keyboard_area_y), 1)
-        self.draw_keyboard(keyboard_area_y + 4, ox, oy)
+        pygame.draw.rect(
+            screen,
+            (30, 30, 70),
+            (gc.GAME_STATE_MENU, keyboard_area_y, SCREEN_W, KEYBOARD_PANEL_HEIGHT),
+        )
+        pygame.draw.line(
+            screen,
+            INPUT_BORDER,
+            (gc.GAME_STATE_MENU, keyboard_area_y),
+            (SCREEN_W, keyboard_area_y),
+            gc.KEYBOARD_AREA_BORDER_WIDTH,
+        )
+        self.draw_keyboard(keyboard_area_y + gc.KEYBOARD_DRAW_Y_OFFSET, ox, oy)
 
-    def draw_keyboard(self, start_y, ox=0, oy=0):
+    def draw_keyboard(self, start_y, ox=gc.GAME_STATE_MENU, oy=gc.GAME_STATE_MENU):
         unit_w = self.keyboard_metrics["unit_w"]
         key_h = self.keyboard_metrics["key_h"]
         gap_x = self.keyboard_metrics["gap_x"]
         gap_y = self.keyboard_metrics["gap_y"]
 
         for row_index, row in enumerate(self.keyboard_layout):
-            row_width = sum(int(unit_w * key["width"]) for key in row) + gap_x * (len(row) - 1)
-            start_x = (SCREEN_W - row_width) // 2
+            row_width = sum(int(unit_w * key["width"]) for key in row) + gap_x * (len(row) - gc.GAME_STATE_PLAYING)
+            start_x = (SCREEN_W - row_width) // gc.MENU_OPTION_COUNT
             y = start_y + row_index * (key_h + gap_y)
 
             x = start_x
@@ -584,13 +639,13 @@ class TypingGame:
                 base_border = zone_color["border"]
 
                 flash_key = label.lower()
-                is_flashing = flash_key in self.key_flash and self.key_flash[flash_key] > 0
+                is_flashing = flash_key in self.key_flash and self.key_flash[flash_key] > gc.GAME_STATE_MENU
                 if is_flashing:
                     flash_boost = self.keyboard_colors["flash_boost"]
                     fill_color = (
-                        min(255, base_fill[0] + flash_boost),
-                        min(255, base_fill[1] + flash_boost),
-                        min(255, base_fill[2] + flash_boost),
+                        min(gc.PARTICLE_ALPHA_MAX, base_fill[gc.GAME_STATE_MENU] + flash_boost),
+                        min(gc.PARTICLE_ALPHA_MAX, base_fill[gc.GAME_STATE_PLAYING] + flash_boost),
+                        min(gc.PARTICLE_ALPHA_MAX, base_fill[gc.GAME_STATE_OVER] + flash_boost),
                     )
                     border_color = self.keyboard_colors["flash_border"]
                 else:
@@ -598,8 +653,8 @@ class TypingGame:
                     border_color = base_border
 
                 rect = pygame.Rect(x + ox, y + oy, key_w, key_h)
-                pygame.draw.rect(screen, fill_color, rect, border_radius=4)
-                pygame.draw.rect(screen, border_color, rect, 1, border_radius=4)
+                pygame.draw.rect(screen, fill_color, rect, border_radius=gc.KEYBOARD_KEY_RADIUS)
+                pygame.draw.rect(screen, border_color, rect, gc.KEYBOARD_KEY_BORDER_WIDTH, border_radius=gc.KEYBOARD_KEY_RADIUS)
 
                 if key.get("show_label", False):
                     txt = font_tiny.render(label.upper(), True, TEXT_WHITE)
@@ -617,7 +672,7 @@ class TypingGame:
 
         # Game Over 标题
         title = font_big.render("游戏结束!", True, TEXT_RED)
-        title_rect = title.get_rect(center=(SCREEN_W // 2, 100))
+        title_rect = title.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.GAME_OVER_TITLE_Y))
         screen.blit(title, title_rect)
 
         # 统计信息
@@ -630,16 +685,16 @@ class TypingGame:
         ]
 
         for i, stat in enumerate(stats):
-            color = TEXT_YELLOW if i == 0 else TEXT_WHITE
+            color = TEXT_YELLOW if i == gc.GAME_STATE_MENU else TEXT_WHITE
             s = font_small.render(stat, True, color)
-            r = s.get_rect(center=(SCREEN_W // 2, 200 + i * 40))
+            r = s.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.GAME_OVER_STATS_START_Y + i * gc.GAME_OVER_STATS_STEP_Y))
             screen.blit(s, r)
 
         # 评价
-        if self.score >= 500:
+        if self.score >= gc.COMMENT_HIGH_SCORE:
             comment = "太厉害了！打字高手！🌟"
             c_color = TEXT_YELLOW
-        elif self.score >= 200:
+        elif self.score >= gc.COMMENT_MEDIUM_SCORE:
             comment = "不错哦！继续加油！💪"
             c_color = TEXT_GREEN
         else:
@@ -647,32 +702,32 @@ class TypingGame:
             c_color = TEXT_CYAN
 
         comment_surf = font_medium.render(comment, True, c_color)
-        comment_rect = comment_surf.get_rect(center=(SCREEN_W // 2, 430))
+        comment_rect = comment_surf.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.GAME_OVER_COMMENT_Y))
         screen.blit(comment_surf, comment_rect)
 
         # 提示
         hint = font_small.render("按 Enter 重新开始    按 Esc 返回菜单", True, (120, 120, 160))
-        hint_rect = hint.get_rect(center=(SCREEN_W // 2, 520))
+        hint_rect = hint.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.GAME_OVER_HINT_Y))
         screen.blit(hint, hint_rect)
 
     def reset_game(self):
-        self.score = 0
-        self.lives = 5
-        self.level = 1
+        self.score = gc.INITIAL_SCORE
+        self.lives = gc.INITIAL_LIVES
+        self.level = gc.INITIAL_LEVEL
         self.words = []
         self.particles = []
         self.input_text = ""
-        self.combo = 0
-        self.max_combo = 0
-        self.words_cleared = 0
-        self.words_missed = 0
-        self.spawn_timer = 1.0
-        self.game_time = 0
-        self.shake_timer = 0
-        self.flash_timer = 0
+        self.combo = gc.INITIAL_COMBO
+        self.max_combo = gc.INITIAL_MAX_COMBO
+        self.words_cleared = gc.INITIAL_WORDS_CLEARED
+        self.words_missed = gc.INITIAL_WORDS_MISSED
+        self.spawn_timer = gc.RESET_SPAWN_TIMER
+        self.game_time = gc.INITIAL_GAME_TIME
+        self.shake_timer = gc.INITIAL_SHAKE_TIMER
+        self.flash_timer = gc.INITIAL_FLASH_TIMER
         self.apply_keyboard_config()
         for key in self.key_flash:
-            self.key_flash[key] = 0
+            self.key_flash[key] = gc.INITIAL_FLASH_TIMER
 
     def handle_event(self, event):
         if event.type == pygame.QUIT:
@@ -681,11 +736,11 @@ class TypingGame:
         if event.type == pygame.KEYDOWN:
             if self.state == self.STATE_MENU:
                 if event.key == pygame.K_UP:
-                    self.menu_selection = (self.menu_selection - 1) % 2
+                    self.menu_selection = (self.menu_selection - gc.GAME_STATE_PLAYING) % gc.MENU_OPTION_COUNT
                 elif event.key == pygame.K_DOWN:
-                    self.menu_selection = (self.menu_selection + 1) % 2
+                    self.menu_selection = (self.menu_selection + gc.GAME_STATE_PLAYING) % gc.MENU_OPTION_COUNT
                 elif event.key == pygame.K_RETURN:
-                    self.mode = "english" if self.menu_selection == 0 else "pinyin"
+                    self.mode = "english" if self.menu_selection == gc.MENU_SELECTION_ENGLISH else "pinyin"
                     self.reset_game()
                     self.state = self.STATE_PLAYING
 
@@ -700,15 +755,15 @@ class TypingGame:
                     self.mode = "pinyin" if self.mode == "english" else "english"
                     self.input_text = ""
                     for w in self.words:
-                        w.matched_chars = 0
+                        w.matched_chars = gc.INITIAL_COMBO
                 elif event.key == pygame.K_BACKSPACE:
-                    self.input_text = self.input_text[:-1]
+                    self.input_text = self.input_text[:-gc.INPUT_BACKSPACE_STEP]
                     self.check_input()
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     # 回车/空格清空输入（不匹配时重来）
                     self.input_text = ""
                     for w in self.words:
-                        w.matched_chars = 0
+                        w.matched_chars = gc.INITIAL_COMBO
                 elif event.unicode and event.unicode.isalpha():
                     typed_key = event.unicode.lower()
                     self.input_text += typed_key
@@ -726,8 +781,8 @@ class TypingGame:
     def run(self):
         running = True
         while running:
-            dt = clock.tick(60) / 1000.0
-            dt = min(dt, 0.05)  # 防止跳帧
+            dt = clock.tick(gc.FPS) / gc.MS_TO_SECONDS
+            dt = min(dt, gc.MAX_FRAME_DT)  # 防止跳帧
 
             for event in pygame.event.get():
                 if not self.handle_event(event):
