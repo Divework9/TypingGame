@@ -4,6 +4,34 @@
 
 依赖: pip install pygame
 运行: python typing_game.py
+
+
+@ name
+typing game， 打字游戏
+面向初步学打字的 小学生
+@ demand 
+单词/汉字从屏幕顶部随机下落
+玩家在底部输入框打字，匹配成功则消除对应目标，得分
+掉到底部未消除则扣一条命
+英文模式（单词下落）和拼音模式（汉字下落、打拼音消除）可切换
+难度随分数递增（下落加速、单词变长）
+适合小学生的大字体、彩色界面
+
+两种模式：英文单词模式（打单词消除）和拼音模式（屏幕显示汉字，打对应拼音消除）。菜单选择，游戏中按 Tab 切换。
+动态难度：分数越高，下落越快、单词越长。分三档：easy（短词）→ medium → hard（长词/多字词）。
+反馈系统：连击计数（Combo）、消除粒子特效、屏幕震动（漏词时）、生命值心形显示。
+
+输入匹配算法：滑动窗口前缀匹配
+- 第1层：检查整个输入是否为词的前缀。若是，返回匹配长度；若否进入第2层。
+- 第2-N层：逐步去掉输入的首字符，用剩余部分依次检查是否为词的前缀。
+  * 若某个滑动窗口匹配成功，立即返回该位置对应的匹配长度，不继续往后滑。
+  * 若全部失败，返回 0（无匹配）。
+- 示例：输入"caar"，词"are" → "caar"❌ → "aar"❌ → "ar"✓（作为"are"的前缀） → 返回 2。
+- 可视化：打字时已匹配的字母变绿，直观看到进度。拼音模式下汉字在上、拼音在下。
+
+你拿到后需要注意的事
+
+
 """
 
 import pygame
@@ -296,33 +324,35 @@ class TypingGame:
         self.words.append(FallingWord(display, type_text, x, speed, color))
 
     def check_input(self):
-        """检查当前输入是否匹配任何下落词"""
+        """检查当前输入是否匹配任何下落词 - 使用滑动窗口前缀匹配"""
         if not self.input_text:
-            # 清空所有词的部分匹配
             for w in self.words:
                 w.matched_chars = 0
             return
 
-        best_match = None
-        best_match_len = 0
+        input_lower = self.input_text.lower()
 
         for w in self.words:
             if not w.active:
-                continue
-            # 检查输入是否是该词的前缀
-            if w.type_text.startswith(self.input_text.lower()):
-                w.matched_chars = len(self.input_text)
-                if len(self.input_text) > best_match_len:
-                    best_match = w
-                    best_match_len = len(self.input_text)
-
-                # 完全匹配 -> 消除
-                if self.input_text.lower() == w.type_text:
-                    self.clear_word(w)
-                    self.input_text = ""
-                    return
-            else:
                 w.matched_chars = 0
+                continue
+
+            matched = 0
+            should_clear = False
+            for start_pos in range(len(input_lower)):
+                substring = input_lower[start_pos:]
+                if w.type_text.startswith(substring):
+                    matched = len(substring)
+                    if substring == w.type_text:
+                        should_clear = True
+                    break
+
+            w.matched_chars = matched
+
+            if should_clear:
+                self.clear_word(w)
+                self.input_text = ""
+                return
 
     def clear_word(self, word):
         """消除一个词"""
