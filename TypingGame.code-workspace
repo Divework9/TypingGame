@@ -3,9 +3,7 @@
 		{
 			"path": "."
 		},
-		{
-			"path": "../Video2txt"
-		}
+
 	],
 	"settings": {}
 }

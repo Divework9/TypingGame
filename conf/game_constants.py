@@ -292,7 +292,7 @@ MENU_BOX_RADIUS = _scale_px(10)
 # 选项文字 Y 偏移
 MENU_OPTION_TEXT_Y_OFFSET = _scale_px(12)
 # 底部提示起始 Y 坐标
-MENU_HINT_START_Y = _scale_px(490)
+MENU_HINT_START_Y = _scale_px(545)
 # 提示行间距
 MENU_HINT_STEP_Y = _scale_px(28)
 

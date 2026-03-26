@@ -1,6 +1,6 @@
 ---
 name: pyinstaller-packaging
-description: "PyInstaller + Inno Setup 打包发布检查清单。Use when: 构建、打包、发布、PyInstaller、exe、安装包、distribution、release build、packaging"
+description: PyInstaller + Inno Setup 打包发布检查清单。
 ---
 
 # PyInstaller 打包发布检查清单

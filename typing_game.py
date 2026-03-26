@@ -31,9 +31,10 @@ typing game， 打字游戏
 
 @ 发布流程
 一键打包发布脚本：
- .\release\build.ps1 -Clean
- 生成的 exe 在 .\release\dist\typing_game.exe 建议整个目录拷贝走
- 生成的安装包在 .\release\dist\installer\TypingGame-Setup-0.1.2.exe
+ ./release/build.ps1 -Clean
+ 生成的 exe 在 ./release/dist/typing_game.exe 建议整个目录拷贝走
+ 生成的安装包在 ./release/dist/installer/TypingGame-Setup-0.1.2.exe
+"""
 
 import pygame
 import random
@@ -442,16 +443,16 @@ class TypingGame:
 
         # 标题
         title = font_big.render("打字大冒险", True, TEXT_YELLOW)
-        title_rect = title.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_TITLE_Y))
+        title_rect = title.get_rect(center=(SCREEN_W // 2, gc.MENU_TITLE_Y))
         screen.blit(title, title_rect)
 
         subtitle = font_small.render("Typing Adventure", True, TEXT_CYAN)
-        sub_rect = subtitle.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_SUBTITLE_Y))
+        sub_rect = subtitle.get_rect(center=(SCREEN_W // 2, gc.MENU_SUBTITLE_Y))
         screen.blit(subtitle, sub_rect)
 
         # 模式选择
         mode_title = font_small.render("选择模式 / Select Mode:", True, TEXT_WHITE)
-        screen.blit(mode_title, mode_title.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_MODE_TITLE_Y)))
+        screen.blit(mode_title, mode_title.get_rect(center=(SCREEN_W // 2, gc.MENU_MODE_TITLE_Y)))
 
         options = [
             ("🔤  单字母模式  Single Letters", "letter"),
@@ -466,7 +467,7 @@ class TypingGame:
             if is_selected:
                 # 选中框
                 box_rect = pygame.Rect(
-                    SCREEN_W // gc.MENU_OPTION_COUNT - gc.MENU_BOX_HALF_WIDTH,
+                    SCREEN_W // 2 - gc.MENU_BOX_HALF_WIDTH,
                     y - gc.MENU_BOX_Y_OFFSET,
                     gc.MENU_BOX_WIDTH,
                     gc.MENU_BOX_HEIGHT,
@@ -478,7 +479,7 @@ class TypingGame:
                 color = (150, 150, 180)
 
             opt_surf = font_small.render(text, True, color)
-            opt_rect = opt_surf.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, y + gc.MENU_OPTION_TEXT_Y_OFFSET))
+            opt_rect = opt_surf.get_rect(center=(SCREEN_W // 2, y + gc.MENU_OPTION_TEXT_Y_OFFSET))
             screen.blit(opt_surf, opt_rect)
 
         # 操作提示
@@ -488,7 +489,7 @@ class TypingGame:
         ]
         for i, hint in enumerate(hints):
             h_surf = font_tiny.render(hint, True, (120, 120, 160))
-            h_rect = h_surf.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.MENU_HINT_START_Y + i * gc.MENU_HINT_STEP_Y))
+            h_rect = h_surf.get_rect(center=(SCREEN_W // 2, gc.MENU_HINT_START_Y + i * gc.MENU_HINT_STEP_Y))
             screen.blit(h_surf, h_rect)
 
     def draw_game(self):
@@ -697,7 +698,7 @@ class TypingGame:
 
         for row_index, row in enumerate(self.keyboard_layout):
             row_width = sum(int(unit_w * key["width"]) for key in row) + gap_x * (len(row) - gc.GAME_STATE_PLAYING)
-            start_x = (SCREEN_W - row_width) // gc.MENU_OPTION_COUNT
+            start_x = (SCREEN_W - row_width) // 2
             y = start_y + row_index * (key_h + gap_y)
 
             x = start_x
@@ -744,7 +745,7 @@ class TypingGame:
 
         # Game Over 标题
         title = font_big.render("游戏结束!", True, TEXT_RED)
-        title_rect = title.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.GAME_OVER_TITLE_Y))
+        title_rect = title.get_rect(center=(SCREEN_W // 2, gc.GAME_OVER_TITLE_Y))
         screen.blit(title, title_rect)
 
         # 统计信息
@@ -759,7 +760,7 @@ class TypingGame:
         for i, stat in enumerate(stats):
             color = TEXT_YELLOW if i == gc.GAME_STATE_MENU else TEXT_WHITE
             s = font_small.render(stat, True, color)
-            r = s.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.GAME_OVER_STATS_START_Y + i * gc.GAME_OVER_STATS_STEP_Y))
+            r = s.get_rect(center=(SCREEN_W // 2, gc.GAME_OVER_STATS_START_Y + i * gc.GAME_OVER_STATS_STEP_Y))
             screen.blit(s, r)
 
         # 评价
@@ -774,12 +775,12 @@ class TypingGame:
             c_color = TEXT_CYAN
 
         comment_surf = font_medium.render(comment, True, c_color)
-        comment_rect = comment_surf.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.GAME_OVER_COMMENT_Y))
+        comment_rect = comment_surf.get_rect(center=(SCREEN_W // 2, gc.GAME_OVER_COMMENT_Y))
         screen.blit(comment_surf, comment_rect)
 
         # 提示
         hint = font_small.render("按 Enter 重新开始    按 Esc 返回菜单", True, (120, 120, 160))
-        hint_rect = hint.get_rect(center=(SCREEN_W // gc.MENU_OPTION_COUNT, gc.GAME_OVER_HINT_Y))
+        hint_rect = hint.get_rect(center=(SCREEN_W // 2, gc.GAME_OVER_HINT_Y))
         screen.blit(hint, hint_rect)
 
     def reset_game(self):
