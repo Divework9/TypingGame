@@ -29,10 +29,11 @@ typing game， 打字游戏
 - 示例：输入"caar"，词"are" → "caar"❌ → "aar"❌ → "ar"✓（作为"are"的前缀） → 返回 2。
 - 可视化：打字时已匹配的字母变绿，直观看到进度。拼音模式下汉字在上、拼音在下。
 
-你拿到后需要注意的事
-
-
-"""
+@ 发布流程
+一键打包发布脚本：
+ .\release\build.ps1 -Clean
+ 生成的 exe 在 .\release\dist\typing_game.exe 建议整个目录拷贝走
+ 生成的安装包在 .\release\dist\installer\TypingGame-Setup-0.1.2.exe
 
 import pygame
 import random
