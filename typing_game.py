@@ -55,7 +55,7 @@ from conf.speed import (
     FALL_SPEED_MAX,
     FALL_SPEED_RANDOM_OFFSET,
 )
-from conf.word_bank import LETTERS, ENGLISH_WORDS, PINYIN_WORDS
+from conf.word_bank import LETTERS, ENGLISH_WORDS, PINYIN_WORDS, LETTER_STAGE_CONFIGS
 from conf.combo_feedback import choose_combo_feedback
 from conf import game_constants as gc
 
@@ -247,6 +247,10 @@ class TypingGame:
         self.stars = [Star() for _ in range(gc.STAR_COUNT)]
         self.shake_timer = gc.INITIAL_SHAKE_TIMER  # 屏幕震动
         self.flash_timer = gc.INITIAL_FLASH_TIMER  # 消除闪光
+        self.letter_stage = gc.INITIAL_LETTER_STAGE
+        self.letter_stage_combo = gc.INITIAL_COMBO
+        self.letter_stage_clear_progress = gc.INITIAL_COMBO
+        self.letter_stage_speed_anchor_score = gc.INITIAL_SCORE
         self.keyboard_layout = []
         self.keyboard_colors = {}
         self.keyboard_metrics = {}
@@ -257,7 +261,12 @@ class TypingGame:
         self.menu_selection = gc.INITIAL_MENU_SELECTION
 
     def apply_keyboard_config(self):
-        keyboard_config = get_keyboard_config_for_level(self.level)
+        keyboard_level = self.level
+        # 单字母关卡需要明确看到标点键（; , .），因此固定使用 full 键盘档。
+        if self.mode == "letter":
+            keyboard_level = max(keyboard_level, 3)
+
+        keyboard_config = get_keyboard_config_for_level(keyboard_level)
         self.keyboard_layout = keyboard_config["layout"]
         self.keyboard_colors = keyboard_config["colors"]
         self.keyboard_metrics = keyboard_config["metrics"]
@@ -280,22 +289,40 @@ class TypingGame:
             self.key_flash[key] = max(gc.INITIAL_FLASH_TIMER, self.key_flash[key] - dt)
 
     def get_difficulty(self):
-        if self.score < gc.DIFFICULTY_MEDIUM_SCORE:
+        score_ref = self.score
+        if self.mode == "letter":
+            score_ref = max(gc.INITIAL_SCORE, self.score - self.letter_stage_speed_anchor_score)
+        if score_ref < gc.DIFFICULTY_MEDIUM_SCORE:
             return "easy"
-        elif self.score < gc.DIFFICULTY_HARD_SCORE:
+        elif score_ref < gc.DIFFICULTY_HARD_SCORE:
             return "medium"
         else:
             return "hard"
 
     def get_spawn_interval(self):
         """根据分数动态调整生成间隔"""
-        reduction = self.score * SPAWN_INTERVAL_SCORE_REDUCTION
+        score_ref = self.score
+        if self.mode == "letter":
+            score_ref = max(gc.INITIAL_SCORE, self.score - self.letter_stage_speed_anchor_score)
+        reduction = score_ref * SPAWN_INTERVAL_SCORE_REDUCTION
         return max(SPAWN_INTERVAL_MIN, SPAWN_INTERVAL_BASE - reduction)
 
     def get_fall_speed(self):
         """根据分数动态调整下落速度"""
-        increase = self.score * FALL_SPEED_SCORE_INCREASE
+        score_ref = self.score
+        if self.mode == "letter":
+            score_ref = max(gc.INITIAL_SCORE, self.score - self.letter_stage_speed_anchor_score)
+        increase = score_ref * FALL_SPEED_SCORE_INCREASE
         return min(FALL_SPEED_MAX, FALL_SPEED_BASE + increase)
+
+    def get_letter_stage_config(self):
+        if not LETTER_STAGE_CONFIGS:
+            return {"label": "a-z", "keys": LETTERS}
+        stage_index = max(0, min(self.letter_stage - 1, len(LETTER_STAGE_CONFIGS) - 1))
+        return LETTER_STAGE_CONFIGS[stage_index]
+
+    def get_current_letter_candidates(self):
+        return set(self.get_letter_stage_config()["keys"])
 
     def spawn_word(self):
         diff = self.get_difficulty()
@@ -303,7 +330,10 @@ class TypingGame:
         color = random.choice(WORD_COLORS)
 
         if self.mode == "letter":
-            letter = random.choice(LETTERS)
+            candidates = list(self.get_current_letter_candidates())
+            if not candidates:
+                candidates = LETTERS
+            letter = random.choice(candidates)
             display = letter
             type_text = letter
         elif self.mode == "english":
@@ -374,9 +404,33 @@ class TypingGame:
         self.combo += gc.GAME_STATE_PLAYING
         self.combo_feedback_word = choose_combo_feedback(self.combo, self.combo_feedback_word)
         combo_bonus = min(self.combo, gc.COMBO_BONUS_CAP) * gc.COMBO_BONUS_UNIT
-        self.score += base_score + combo_bonus
+        gained_score = base_score + combo_bonus
+        self.score += gained_score
         self.words_cleared += gc.GAME_STATE_PLAYING
         self.max_combo = max(self.max_combo, self.combo)
+
+        if self.mode == "letter":
+            self.letter_stage_clear_progress += gc.GAME_STATE_PLAYING
+            if self.letter_stage_clear_progress >= gc.LETTER_STAGE_MASTERY_CLEAR_STEP:
+                mastery_gain = self.letter_stage_clear_progress // gc.LETTER_STAGE_MASTERY_CLEAR_STEP
+                self.letter_stage_combo += mastery_gain
+                self.letter_stage_clear_progress %= gc.LETTER_STAGE_MASTERY_CLEAR_STEP
+            if (
+                self.letter_stage < len(LETTER_STAGE_CONFIGS)
+                and self.letter_stage_combo >= gc.LETTER_STAGE_MASTERY_COMBO
+                and self.combo > gc.LETTER_STAGE_ADVANCE_COMBO_GT
+            ):
+                self.letter_stage += gc.GAME_STATE_PLAYING
+                self.letter_stage_combo = gc.INITIAL_COMBO
+                self.letter_stage_clear_progress = gc.INITIAL_COMBO
+                self.letter_stage_speed_anchor_score = self.score
+                # 关卡切换时清空场上旧关卡字母，避免新关卡输入范围与旧字母冲突。
+                for existing in self.words:
+                    existing.active = False
+                self.words = []
+                self.input_text = ""
+            elif self.letter_stage >= len(LETTER_STAGE_CONFIGS):
+                self.letter_stage_combo = min(self.letter_stage_combo, gc.LETTER_STAGE_MASTERY_COMBO)
 
         # 升级检测
         new_level = gc.INITIAL_LEVEL + self.score // gc.LEVEL_SCORE_STEP
@@ -398,6 +452,9 @@ class TypingGame:
         word.active = False
         self.lives -= gc.GAME_STATE_PLAYING
         self.combo = gc.INITIAL_COMBO
+        if self.mode == "letter":
+            self.letter_stage_combo = gc.INITIAL_COMBO
+            self.letter_stage_clear_progress = gc.INITIAL_COMBO
         self.combo_feedback_word = ""
         self.words_missed += gc.GAME_STATE_PLAYING
         self.shake_timer = gc.MISS_SHAKE_DURATION
@@ -560,6 +617,18 @@ class TypingGame:
         mode_text = font_tiny.render(f"[{mode_label}] Tab切换", True, (120, 120, 160))
         screen.blit(mode_text, (SCREEN_W - gc.MODE_HINT_RIGHT_OFFSET + ox, info_y + gc.MODE_HINT_Y_OFFSET + oy))
 
+        if self.mode == "letter":
+            stage_cfg = self.get_letter_stage_config()
+            stage_count = len(LETTER_STAGE_CONFIGS)
+            stage_text = font_tiny.render(
+                f"字母关卡 {self.letter_stage}/{stage_count}  熟练度 {self.letter_stage_combo}/{gc.LETTER_STAGE_MASTERY_COMBO}",
+                True,
+                TEXT_PINK,
+            )
+            candidates_text = font_tiny.render(f"候选键: {stage_cfg['label']}", True, TEXT_PINK)
+            screen.blit(stage_text, (gc.SCORE_TEXT_X + ox, gc.TOP_DIVIDER_Y + gc.GAME_STATE_PLAYING + oy))
+            screen.blit(candidates_text, (gc.SCORE_TEXT_X + ox, gc.TOP_DIVIDER_Y + gc.FONT_SIZE_TINY + oy))
+
         # 生命值
         heart_x = SCREEN_W - gc.HEART_PANEL_RIGHT_OFFSET
         heart_y = info_y + gc.HEART_PANEL_Y_OFFSET
@@ -695,6 +764,7 @@ class TypingGame:
         key_h = self.keyboard_metrics["key_h"]
         gap_x = self.keyboard_metrics["gap_x"]
         gap_y = self.keyboard_metrics["gap_y"]
+        letter_candidates = self.get_current_letter_candidates() if self.mode == "letter" else set()
 
         for row_index, row in enumerate(self.keyboard_layout):
             row_width = sum(int(unit_w * key["width"]) for key in row) + gap_x * (len(row) - gc.GAME_STATE_PLAYING)
@@ -710,6 +780,15 @@ class TypingGame:
                 zone_color = self.keyboard_colors[zone]
                 base_fill = zone_color["fill"]
                 base_border = zone_color["border"]
+
+                if self.mode == "letter" and len(label) == 1:
+                    lowered = label.lower()
+                    if lowered in letter_candidates:
+                        base_fill = (255, 120, 190)
+                        base_border = (255, 190, 225)
+                    else:
+                        base_fill = (45, 45, 70)
+                        base_border = (80, 80, 115)
 
                 flash_key = label.lower()
                 is_flashing = flash_key in self.key_flash and self.key_flash[flash_key] > gc.GAME_STATE_MENU
@@ -799,6 +878,10 @@ class TypingGame:
         self.game_time = gc.INITIAL_GAME_TIME
         self.shake_timer = gc.INITIAL_SHAKE_TIMER
         self.flash_timer = gc.INITIAL_FLASH_TIMER
+        self.letter_stage = gc.INITIAL_LETTER_STAGE
+        self.letter_stage_combo = gc.INITIAL_COMBO
+        self.letter_stage_clear_progress = gc.INITIAL_COMBO
+        self.letter_stage_speed_anchor_score = gc.INITIAL_SCORE
         self.apply_keyboard_config()
         for key in self.key_flash:
             self.key_flash[key] = gc.INITIAL_FLASH_TIMER
@@ -835,6 +918,7 @@ class TypingGame:
                     idx = mode_cycle.index(self.mode) if self.mode in mode_cycle else 0
                     self.mode = mode_cycle[(idx + 1) % len(mode_cycle)]
                     self.input_text = ""
+                    self.apply_keyboard_config()
                     for w in self.words:
                         w.matched_chars = gc.INITIAL_COMBO
                 elif event.key == pygame.K_BACKSPACE:
@@ -845,10 +929,23 @@ class TypingGame:
                     self.input_text = ""
                     for w in self.words:
                         w.matched_chars = gc.INITIAL_COMBO
-                elif event.unicode and event.unicode.isalpha():
+                elif event.unicode:
                     typed_key = event.unicode.lower()
-                    self.input_text += typed_key
-                    self.check_input()
+                    if self.mode == "letter":
+                        if typed_key in self.get_current_letter_candidates():
+                            # 单字母模式按错键（当前屏幕无该目标）立即断连。
+                            if self.combo > gc.INITIAL_COMBO and not any(w.active and w.type_text == typed_key for w in self.words):
+                                self.combo = gc.INITIAL_COMBO
+                                self.combo_feedback_word = ""
+                                self.input_text = ""
+                                for w in self.words:
+                                    w.matched_chars = gc.INITIAL_COMBO
+                                return True
+                            self.input_text += typed_key
+                            self.check_input()
+                    elif typed_key.isalpha():
+                        self.input_text += typed_key
+                        self.check_input()
 
             elif self.state == self.STATE_OVER:
                 if event.key == pygame.K_RETURN:

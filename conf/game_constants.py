@@ -392,3 +392,16 @@ KEYBOARD_PANEL_HEIGHT = KEYBOARD_KEY_H * 5 + KEYBOARD_GAP_Y * 4 + _scale_px(20)
 # =============================
 # 键盘输入字符截取步长（用于回退一个字符）
 INPUT_BACKSPACE_STEP = 1
+
+# =============================
+# 单字母模式关卡
+# =============================
+# 单字母模式初始关卡
+INITIAL_LETTER_STAGE = 1
+# 单字母模式每关熟练度阈值（达到后进阶）
+# 按需求设定为 10：熟练度达到 10。
+LETTER_STAGE_MASTERY_COMBO = 10
+# 每成功消除多少个字母，熟练度 +1
+LETTER_STAGE_MASTERY_CLEAR_STEP = 5
+# 进阶连击门槛（严格大于该值才可进阶）
+LETTER_STAGE_ADVANCE_COMBO_GT = 15

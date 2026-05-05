@@ -8,6 +8,61 @@ import string
 # 单字母模式：26个字母，不分难度
 LETTERS = list(string.ascii_lowercase)
 
+
+def _merge_stage_keys(*groups):
+    merged = []
+    seen = set()
+    for group in groups:
+        for key in group:
+            if key not in seen:
+                merged.append(key)
+                seen.add(key)
+    return merged
+
+
+# 单字母模式关卡：
+# 1: asdf jkl; gh
+# 2: qwertyuiop
+# 3: zxcvbnm,.
+# 4: 1+2
+# 5: 2+3
+# 6: 1+3
+# 7: 1+2+3
+LETTER_STAGE_1_KEYS = list("asdf") + list("jkl") + [";"] + list("gh")
+LETTER_STAGE_2_KEYS = list("qwertyuiop")
+LETTER_STAGE_3_KEYS = list("zxcvbnm") + [",", "."]
+
+LETTER_STAGE_CONFIGS = [
+    {
+        "label": "asdf jkl; gh",
+        "keys": LETTER_STAGE_1_KEYS,
+    },
+    {
+        "label": "qwertyuiop",
+        "keys": LETTER_STAGE_2_KEYS,
+    },
+    {
+        "label": "zxcvbnm,.",
+        "keys": LETTER_STAGE_3_KEYS,
+    },
+    {
+        "label": "1+2: asdfghjkl;qwertyuiop",
+        "keys": _merge_stage_keys(LETTER_STAGE_1_KEYS, LETTER_STAGE_2_KEYS),
+    },
+    {
+        "label": "2+3: qwertyuiopzxcvbnm,.",
+        "keys": _merge_stage_keys(LETTER_STAGE_2_KEYS, LETTER_STAGE_3_KEYS),
+    },
+    {
+        "label": "1+3: asdfghjkl;zxcvbnm,.",
+        "keys": _merge_stage_keys(LETTER_STAGE_1_KEYS, LETTER_STAGE_3_KEYS),
+    },
+    {
+        "label": "1+2+3: asdfghjkl;qwertyuiopzxcvbnm,.",
+        "keys": _merge_stage_keys(LETTER_STAGE_1_KEYS, LETTER_STAGE_2_KEYS, LETTER_STAGE_3_KEYS),
+    },
+]
+
 ENGLISH_WORDS = {
     "easy": [
         "cat", "dog", "sun", "red", "big", "run", "hot", "cup",

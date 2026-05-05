@@ -2,9 +2,26 @@ from unittest.mock import patch
 
 from test.common import TypingGameBaseTestCase
 import typing_game
+from conf.word_bank import LETTER_STAGE_CONFIGS
 
 
 class SpawnTestCase(TypingGameBaseTestCase):
+    @patch("typing_game.random.randint", return_value=100)
+    @patch("typing_game.random.uniform", return_value=0)
+    @patch("typing_game.random.choice")
+    def test_spawn_word_letter_uses_current_stage_candidates(self, mock_choice, _mock_uniform, _mock_randint):
+        self.game.mode = "letter"
+        self.game.letter_stage = 1
+        self.game.score = 0
+
+        mock_choice.side_effect = [typing_game.TEXT_PINK, ";"]
+
+        self.game.spawn_word()
+
+        self.assertEqual(len(self.game.words), 1)
+        word = self.game.words[0]
+        self.assertIn(word.type_text, LETTER_STAGE_CONFIGS[0]["keys"])
+
     @patch("typing_game.random.randint", return_value=100)
     @patch("typing_game.random.uniform", return_value=0)
     @patch("typing_game.random.choice")

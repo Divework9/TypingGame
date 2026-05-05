@@ -1,8 +1,109 @@
 from test.common import TypingGameBaseTestCase
 import typing_game
+from conf import game_constants as gc
+from conf.word_bank import LETTER_STAGE_CONFIGS
 
 
 class ProgressionStateTestCase(TypingGameBaseTestCase):
+    def test_letter_stage_advances_when_mastery_combo_reached(self):
+        self.game.mode = "letter"
+        self.game.letter_stage = 1
+        self.game.letter_stage_combo = gc.LETTER_STAGE_MASTERY_COMBO - 1
+        self.game.letter_stage_clear_progress = gc.LETTER_STAGE_MASTERY_CLEAR_STEP - 1
+        self.game.combo = gc.LETTER_STAGE_ADVANCE_COMBO_GT
+        word = typing_game.FallingWord("a", "a", 100, 0, typing_game.TEXT_WHITE)
+
+        self.game.clear_word(word)
+
+        self.assertEqual(self.game.letter_stage, 2)
+        self.assertEqual(self.game.letter_stage_combo, 0)
+
+    def test_letter_stage_not_advance_when_mastery_reached_but_combo_not_enough(self):
+        self.game.mode = "letter"
+        self.game.letter_stage = 1
+        self.game.letter_stage_combo = gc.LETTER_STAGE_MASTERY_COMBO - 1
+        self.game.letter_stage_clear_progress = gc.LETTER_STAGE_MASTERY_CLEAR_STEP - 1
+        self.game.combo = gc.LETTER_STAGE_ADVANCE_COMBO_GT - 1
+        word = typing_game.FallingWord("a", "a", 100, 0, typing_game.TEXT_WHITE)
+
+        self.game.clear_word(word)
+
+        self.assertEqual(self.game.letter_stage, 1)
+        self.assertEqual(self.game.letter_stage_combo, gc.LETTER_STAGE_MASTERY_COMBO)
+
+    def test_letter_mastery_increases_only_every_five_clears(self):
+        self.game.mode = "letter"
+        self.game.letter_stage_combo = 0
+        self.game.letter_stage_clear_progress = 0
+
+        word = typing_game.FallingWord("a", "a", 100, 0, typing_game.TEXT_WHITE)
+        for _ in range(gc.LETTER_STAGE_MASTERY_CLEAR_STEP - 1):
+            self.game.clear_word(word)
+            word.active = True
+
+        self.assertEqual(self.game.letter_stage_combo, 0)
+        self.assertEqual(self.game.letter_stage_clear_progress, gc.LETTER_STAGE_MASTERY_CLEAR_STEP - 1)
+
+        self.game.clear_word(word)
+        self.assertEqual(self.game.letter_stage_combo, 1)
+        self.assertEqual(self.game.letter_stage_clear_progress, 0)
+
+    def test_letter_stage_combo_resets_after_miss(self):
+        self.game.mode = "letter"
+        self.game.letter_stage_combo = 8
+        self.game.letter_stage_clear_progress = 3
+        word = typing_game.FallingWord("a", "a", 100, 0, typing_game.TEXT_WHITE)
+
+        self.game.miss_word(word)
+
+        self.assertEqual(self.game.letter_stage_combo, 0)
+        self.assertEqual(self.game.letter_stage_clear_progress, 0)
+
+    def test_letter_stage_does_not_overflow_final_stage(self):
+        self.game.mode = "letter"
+        self.game.letter_stage = len(LETTER_STAGE_CONFIGS)
+        self.game.letter_stage_combo = gc.LETTER_STAGE_MASTERY_COMBO
+        word = typing_game.FallingWord("a", "a", 100, 0, typing_game.TEXT_WHITE)
+
+        self.game.clear_word(word)
+
+        self.assertEqual(self.game.letter_stage, len(LETTER_STAGE_CONFIGS))
+        self.assertEqual(self.game.letter_stage_combo, gc.LETTER_STAGE_MASTERY_COMBO)
+
+    def test_letter_stage_advance_clears_existing_falling_letters(self):
+        self.game.mode = "letter"
+        self.game.letter_stage = 1
+        self.game.letter_stage_combo = gc.LETTER_STAGE_MASTERY_COMBO - 1
+        self.game.letter_stage_clear_progress = gc.LETTER_STAGE_MASTERY_CLEAR_STEP - 1
+        self.game.combo = gc.LETTER_STAGE_ADVANCE_COMBO_GT
+
+        cleared_word = typing_game.FallingWord("a", "a", 100, 0, typing_game.TEXT_WHITE)
+        leftover_word = typing_game.FallingWord("s", "s", 200, 0, typing_game.TEXT_WHITE)
+        self.game.words = [cleared_word, leftover_word]
+
+        self.game.clear_word(cleared_word)
+
+        self.assertEqual(self.game.letter_stage, 2)
+        self.assertEqual(len(self.game.words), 0)
+        self.assertFalse(leftover_word.active)
+
+    def test_letter_stage_advance_resets_fall_speed_to_base(self):
+        self.game.mode = "letter"
+        self.game.letter_stage = 1
+        self.game.letter_stage_combo = gc.LETTER_STAGE_MASTERY_COMBO - 1
+        self.game.letter_stage_clear_progress = gc.LETTER_STAGE_MASTERY_CLEAR_STEP - 1
+        self.game.combo = gc.LETTER_STAGE_ADVANCE_COMBO_GT
+        self.game.score = 500
+        self.game.letter_stage_speed_anchor_score = 0
+        self.assertGreater(self.game.get_fall_speed(), typing_game.FALL_SPEED_BASE)
+
+        word = typing_game.FallingWord("a", "a", 100, 0, typing_game.TEXT_WHITE)
+        self.game.clear_word(word)
+
+        self.assertEqual(self.game.letter_stage, 2)
+        self.assertEqual(self.game.letter_stage_speed_anchor_score, self.game.score)
+        self.assertEqual(self.game.get_fall_speed(), typing_game.FALL_SPEED_BASE)
+
     def test_clear_word_updates_combo_score_and_level(self):
         self.game.score = 145
         word = typing_game.FallingWord("apple", "apple", 100, 0, typing_game.TEXT_WHITE)

@@ -10,11 +10,31 @@ import importlib
 import os
 
 from conf import combo_feedback as cf
+from conf import game_constants as gc
 import typing_game
 from test.common import TypingGameBaseTestCase
 
 
 class RuntimeBugRegressionTestCase(TypingGameBaseTestCase):
+    def test_bug_letter_stage_switch_should_clear_existing_words(self):
+        """回归：字母关卡进阶时，屏幕上旧关卡下落字母应被清空。"""
+        self.game.mode = "letter"
+        self.game.letter_stage = 1
+        self.game.letter_stage_combo = gc.LETTER_STAGE_MASTERY_COMBO - 1
+        self.game.letter_stage_clear_progress = gc.LETTER_STAGE_MASTERY_CLEAR_STEP - 1
+        self.game.combo = gc.LETTER_STAGE_ADVANCE_COMBO_GT
+
+        # 触发进阶的目标词 + 一个未消除的旧关卡词
+        target = typing_game.FallingWord("a", "a", 100, 0, typing_game.TEXT_WHITE)
+        lingering = typing_game.FallingWord("s", "s", 180, 0, typing_game.TEXT_WHITE)
+        self.game.words = [target, lingering]
+
+        self.game.input_text = "a"
+        self.game.check_input()
+
+        self.assertEqual(self.game.letter_stage, 2)
+        self.assertEqual(len(self.game.words), 0)
+
     def test_combo_feedback_tier_step_and_cap(self):
         """回归：鼓励词按每5个 combo 分档，且第6档后封顶。"""
         self.assertEqual(cf.get_feedback_tier_index(1), -1)
